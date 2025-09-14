@@ -6,7 +6,8 @@ type ProviderModelName =
   (typeof models)[number]['providers'][number]['modelName'];
 export type LLMGatewayChatModelId =
   | (typeof models)[number]['id']
-  | `${Provider}/${ProviderModelName}`;
+  | `${Provider}/${ProviderModelName}`
+  | 'test-model';
 
 export type LLMGatewayChatSettings = {
   /**
