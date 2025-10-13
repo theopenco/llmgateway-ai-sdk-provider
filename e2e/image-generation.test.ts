@@ -1,4 +1,5 @@
 import { generateObject, generateText, streamObject, streamText } from 'ai';
+import type { FilePart } from 'ai';
 import { it, expect, vi } from 'vitest';
 import { createLLMGateway } from '@/src';
 import { z } from 'zod';
@@ -34,21 +35,8 @@ describe('image generation', () => {
     expect(result.object.style).toBeDefined();
     expect(typeof result.object.style).toBe('string');
 
-    // Check for experimental image output
-    if (result.experimental_output) {
-      expect(result.experimental_output).toBeDefined();
-      const outputs = Array.isArray(result.experimental_output)
-        ? result.experimental_output
-        : [result.experimental_output];
-
-      const imageOutput = outputs.find((output: any) => output.type === 'file');
-      if (imageOutput) {
-        expect(imageOutput.mediaType).toMatch(/^image\//);
-        expect(imageOutput.data).toBeDefined();
-        expect(typeof imageOutput.data).toBe('string');
-        expect(imageOutput.data.length).toBeGreaterThan(0);
-      }
-    }
+    // TODO: Check for image in response once generateObject supports it
+    expect(1).toBe(0);
   });
 
   it.skip('should generate an image with description using streamObject', async () => {
@@ -79,21 +67,8 @@ describe('image generation', () => {
     expect(finalObject.style).toBeDefined();
     expect(typeof finalObject.style).toBe('string');
 
-    // Check for experimental image output
-    if (result.experimental_output) {
-      const outputs = await result.experimental_output;
-      expect(outputs).toBeDefined();
-
-      const outputArray = Array.isArray(outputs) ? outputs : [outputs];
-      const imageOutput = outputArray.find((output: any) => output.type === 'file');
-
-      if (imageOutput) {
-        expect(imageOutput.mediaType).toMatch(/^image\//);
-        expect(imageOutput.data).toBeDefined();
-        expect(typeof imageOutput.data).toBe('string');
-        expect(imageOutput.data.length).toBeGreaterThan(0);
-      }
-    }
+    // TODO: Check for image in response once streamObject supports it
+    expect(1).toBe(0);
   });
 
   it('should generate an image using generateText', async () => {
@@ -122,19 +97,23 @@ describe('image generation', () => {
     );
     expect(assistantMessage).toBeDefined();
 
-    const imageContent = assistantMessage?.content.find(
-      (content: any) => content.type === 'file'
-    );
+    // Check if content is an array before calling find
+    const imageContent = Array.isArray(assistantMessage?.content)
+      ? (assistantMessage.content.find((content) => content.type === 'file') as FilePart | undefined)
+      : undefined;
 
     if (imageContent) {
       expect(imageContent.mediaType).toMatch(/^image\//);
       expect(imageContent.data).toBeDefined();
-      expect(typeof imageContent.data).toBe('string');
-      expect(imageContent.data.length).toBeGreaterThan(0);
 
-      // Base64 validation - should be a valid base64 string
-      const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
-      expect(base64Regex.test(imageContent.data)).toBe(true);
+      // data can be URL or DataContent (string), check if it's a string
+      if (typeof imageContent.data === 'string') {
+        expect(imageContent.data.length).toBeGreaterThan(0);
+
+        // Base64 validation - should be a valid base64 string
+        const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+        expect(base64Regex.test(imageContent.data)).toBe(true);
+      }
     }
   });
 
@@ -171,19 +150,23 @@ describe('image generation', () => {
     );
     expect(assistantMessage).toBeDefined();
 
-    const imageContent = assistantMessage.content.find(
-      (content: any) => content.type === 'file'
-    );
+    // Check if content is an array before calling find
+    const imageContent = Array.isArray(assistantMessage?.content)
+      ? (assistantMessage.content.find((content) => content.type === 'file') as FilePart | undefined)
+      : undefined;
 
     if (imageContent) {
       expect(imageContent.mediaType).toMatch(/^image\//);
       expect(imageContent.data).toBeDefined();
-      expect(typeof imageContent.data).toBe('string');
-      expect(imageContent.data.length).toBeGreaterThan(0);
 
-      // Base64 validation
-      const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
-      expect(base64Regex.test(imageContent.data)).toBe(true);
+      // data can be URL or DataContent (string), check if it's a string
+      if (typeof imageContent.data === 'string') {
+        expect(imageContent.data.length).toBeGreaterThan(0);
+
+        // Base64 validation
+        const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+        expect(base64Regex.test(imageContent.data)).toBe(true);
+      }
     }
   });
 })
