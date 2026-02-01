@@ -475,8 +475,7 @@ describe('doGenerate', () => {
           type: 'function',
           function: {
             name: 'test-tool',
-            description: 'function',
-            inputSchema: {
+            parameters: {
               type: 'object',
               properties: { value: { type: 'string' } },
               required: ['value'],

@@ -170,8 +170,8 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV2 {
           type: 'function' as const,
           function: {
             name: tool.name,
-            description: tool.type,
-            inputSchema: tool.inputSchema,
+            description: tool.description,
+            parameters: tool.inputSchema,
           },
         }));
 
