@@ -372,7 +372,10 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV2 {
                 promptTokens: usageInfo.inputTokens ?? 0,
                 completionTokens: usageInfo.outputTokens ?? 0,
                 totalTokens: usageInfo.totalTokens ?? 0,
-                cost: response.usage?.cost,
+                cost:
+                  typeof response.usage?.cost === 'number'
+                    ? response.usage.cost
+                    : response.usage?.cost?.total_cost,
                 promptTokensDetails: {
                   cachedTokens:
                     response.usage?.prompt_tokens_details?.cached_tokens ?? 0,
@@ -539,7 +542,10 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV2 {
                 };
               }
 
-              llmgatewayUsage.cost = value.usage.cost;
+              llmgatewayUsage.cost =
+                typeof value.usage.cost === 'number'
+                  ? value.usage.cost
+                  : value.usage.cost?.total_cost;
               llmgatewayUsage.totalTokens = value.usage.total_tokens;
             }
 

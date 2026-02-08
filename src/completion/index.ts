@@ -295,7 +295,10 @@ export class LLMGatewayCompletionLanguageModel implements LanguageModelV2 {
                 };
               }
 
-              llmgatewayUsage.cost = value.usage.cost;
+              llmgatewayUsage.cost =
+                typeof value.usage.cost === 'number'
+                  ? value.usage.cost
+                  : value.usage.cost?.total_cost;
               llmgatewayUsage.totalTokens = value.usage.total_tokens;
             }
 

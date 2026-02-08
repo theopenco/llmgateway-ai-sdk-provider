@@ -42,7 +42,12 @@ export const LLMGatewayCompletionChunkSchema = z.union([
           })
           .nullish(),
         total_tokens: z.number(),
-        cost: z.number().optional(),
+        cost: z
+          .union([
+            z.number(),
+            z.object({ total_cost: z.number() }).passthrough(),
+          ])
+          .optional(),
       })
       .nullish(),
   }),

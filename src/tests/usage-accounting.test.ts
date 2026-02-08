@@ -136,6 +136,70 @@ describe('LLMGateway Usage Accounting', () => {
     });
   });
 
+  it('should normalize cost when returned as an object (e.g. Perplexity models)', async () => {
+    server.urls[
+      'https://api.llmgateway.io/v1/chat/completions'
+    ]!.response = {
+      type: 'json-value',
+      body: {
+        id: 'test-id',
+        model: 'perplexity/sonar-pro',
+        choices: [
+          {
+            message: {
+              role: 'assistant',
+              content: 'Hello, I am an AI assistant.',
+            },
+            index: 0,
+            finish_reason: 'stop',
+          },
+        ],
+        usage: {
+          prompt_tokens: 10,
+          completion_tokens: 20,
+          total_tokens: 30,
+          cost: {
+            input_tokens_cost: 0.00041,
+            output_tokens_cost: 0.00656,
+            request_cost: 0.006,
+            total_cost: 0.01296,
+          },
+          cost_details: {
+            upstream_inference_cost: 19,
+          },
+        },
+      },
+    };
+
+    const settings: LLMGatewayChatSettings = {
+      usage: { include: true },
+    };
+
+    const model = new LLMGatewayChatLanguageModel('test-model', settings, {
+      provider: 'llmgateway.chat',
+      url: () => 'https://api.llmgateway.io/v1/chat/completions',
+      headers: () => ({}),
+      compatibility: 'strict',
+      fetch: server.fetch,
+    });
+
+    const result = await model.doGenerate({
+      prompt: [
+        {
+          role: 'user',
+          content: [{ type: 'text', text: 'Hello' }],
+        },
+      ],
+      maxOutputTokens: 100,
+    });
+
+    const providerData = result.providerMetadata;
+    const llmgatewayData = providerData?.llmgateway as Record<string, unknown>;
+    const usage = llmgatewayData.usage as Record<string, unknown>;
+
+    expect(usage.cost).toBe(0.01296);
+  });
+
   it('should not include provider-specific metadata when usage accounting is disabled', async () => {
     prepareJsonResponse();
 
