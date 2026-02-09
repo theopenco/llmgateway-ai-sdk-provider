@@ -22,7 +22,7 @@ jobs:
           persist-credentials: false
       - name: Collect versions
         run: |
-          echo "nodejs_version=$(cat .tool-versions | grep 'nodejs' | cut -d ' ' -f 2)" >> "$GITHUB_ENV"
+          echo "nodejs_version=$(cat .tool-versions | grep '^node ' | cut -d ' ' -f 2)" >> "$GITHUB_ENV"
           echo "pnpm_version=$(cat .tool-versions | grep 'pnpm' | cut -d ' ' -f 2)" >> "$GITHUB_ENV"
       - uses: pnpm/action-setup@v4
         with:
