@@ -93,8 +93,8 @@ describe('LLMGatewayImageModel', () => {
       });
     });
 
-    it('should warn for unsupported aspectRatio', async () => {
-      const result = await model.doGenerate({
+    it('should send aspect_ratio in body when provided', async () => {
+      await model.doGenerate({
         prompt: 'a dog',
         n: 1,
         size: undefined,
@@ -106,9 +106,13 @@ describe('LLMGatewayImageModel', () => {
         headers: {},
       });
 
-      expect(result.warnings).toContainEqual({
-        type: 'unsupported',
-        feature: 'aspectRatio',
+      const body = await server.calls[0]!.requestBodyJson;
+      expect(body).toEqual({
+        model: 'qwen-image-plus',
+        prompt: 'a dog',
+        n: 1,
+        response_format: 'b64_json',
+        aspect_ratio: '16:9',
       });
     });
 

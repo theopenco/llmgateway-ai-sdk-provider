@@ -67,13 +67,6 @@ export class LLMGatewayImageModel implements ImageModelV3 {
   }> {
     const warnings: SharedV3Warning[] = [];
 
-    if (options.aspectRatio != null) {
-      warnings.push({
-        type: 'unsupported',
-        feature: 'aspectRatio',
-      });
-    }
-
     if (options.seed != null) {
       warnings.push({
         type: 'unsupported',
@@ -90,6 +83,10 @@ export class LLMGatewayImageModel implements ImageModelV3 {
 
     if (options.size != null) {
       body.size = options.size;
+    }
+
+    if (options.aspectRatio != null) {
+      body.aspect_ratio = options.aspectRatio;
     }
 
     const { value: response, responseHeaders } = await postJsonToApi({
