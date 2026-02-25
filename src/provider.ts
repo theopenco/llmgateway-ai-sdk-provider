@@ -1,14 +1,19 @@
-import type { LanguageModelV2 } from '@ai-sdk/provider';
+import type { ImageModelV3, LanguageModelV2 } from '@ai-sdk/provider';
 import type {
   LLMGatewayChatModelId,
   LLMGatewayChatSettings,
 } from './types/llmgateway-chat-settings';
 import type { LLMGatewayCompletionSettings } from './types/llmgateway-completion-settings';
+import type {
+  LLMGatewayImageModelId,
+  LLMGatewayImageSettings,
+} from './types/llmgateway-image-settings';
 
 import { loadApiKey, withoutTrailingSlash } from '@ai-sdk/provider-utils';
 
 import { LLMGatewayChatLanguageModel } from './chat';
 import { LLMGatewayCompletionLanguageModel } from './completion';
+import { LLMGatewayImageModel } from './image';
 
 export type { LLMGatewayCompletionSettings };
 
@@ -46,6 +51,22 @@ Creates an LLMGateway completion model for text generation.
     modelId: LLMGatewayChatModelId,
     settings?: LLMGatewayCompletionSettings,
   ): LLMGatewayCompletionLanguageModel;
+
+  /**
+Creates an LLMGateway image model for image generation.
+   */
+  image(
+    modelId: LLMGatewayImageModelId,
+    settings?: LLMGatewayImageSettings,
+  ): LLMGatewayImageModel;
+
+  /**
+Creates an LLMGateway image model for image generation.
+   */
+  imageModel(
+    modelId: LLMGatewayImageModelId,
+    settings?: LLMGatewayImageSettings,
+  ): ImageModelV3;
 }
 
 export interface LLMGatewayProviderSettings {
@@ -137,6 +158,17 @@ export function createLLMGateway(
       extraBody: options.extraBody,
     });
 
+  const createImageModel = (
+    modelId: LLMGatewayImageModelId,
+    settings: LLMGatewayImageSettings = {},
+  ) =>
+    new LLMGatewayImageModel(modelId, settings, {
+      provider: 'llmgateway.image',
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+    });
+
   const createLanguageModel = (
     modelId: LLMGatewayChatModelId,
     settings?: LLMGatewayChatSettings | LLMGatewayCompletionSettings,
@@ -165,8 +197,10 @@ export function createLLMGateway(
   provider.languageModel = createLanguageModel;
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;
+  provider.image = createImageModel;
+  provider.imageModel = createImageModel;
 
-  return provider as LLMGatewayProvider;
+  return provider as unknown as LLMGatewayProvider;
 }
 
 /**
