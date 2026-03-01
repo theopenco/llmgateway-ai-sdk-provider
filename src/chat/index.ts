@@ -258,7 +258,7 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV2 {
 
     const reasoning: Array<LanguageModelV2Content> =
       reasoningDetails.length > 0
-        ? reasoningDetails
+        ? (reasoningDetails
             .map((detail: ReasoningDetailUnion) => {
               switch (detail.type) {
                 case ReasoningDetailType.Text: {
@@ -298,7 +298,7 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV2 {
             })
             .filter(
               (p): p is { type: 'reasoning'; text: string } => p !== null,
-            ) as LanguageModelV2Content[]
+            ) as LanguageModelV2Content[])
         : choice.message.reasoningText
           ? [
               {

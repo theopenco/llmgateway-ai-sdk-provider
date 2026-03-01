@@ -1,9 +1,9 @@
 import type { ModelMessage } from 'ai';
 
-import { generateText } from 'ai';
 import { writeFile } from 'fs/promises';
-import { test, vi } from 'vitest';
 import { createLLMGateway } from '@/src';
+import { generateText } from 'ai';
+import { test, vi } from 'vitest';
 
 vi.setConfig({
   testTimeout: 42_000,

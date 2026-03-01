@@ -137,9 +137,7 @@ describe('LLMGateway Usage Accounting', () => {
   });
 
   it('should normalize cost when returned as an object (e.g. Perplexity models)', async () => {
-    server.urls[
-      'https://api.llmgateway.io/v1/chat/completions'
-    ]!.response = {
+    server.urls['https://api.llmgateway.io/v1/chat/completions']!.response = {
       type: 'json-value',
       body: {
         id: 'test-id',

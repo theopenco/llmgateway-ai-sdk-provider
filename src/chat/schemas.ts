@@ -1,8 +1,8 @@
 import { z } from 'zod/v4';
 
 import { LLMGatewayErrorResponseSchema } from '../schemas/error-response';
-import { ReasoningDetailArraySchema } from '../schemas/reasoning-details';
 import { ImageResponseArraySchema } from '../schemas/image';
+import { ReasoningDetailArraySchema } from '../schemas/reasoning-details';
 
 const LLMGatewayChatCompletionBaseResponseSchema = z.object({
   id: z.string().optional(),
@@ -23,10 +23,7 @@ const LLMGatewayChatCompletionBaseResponseSchema = z.object({
         .nullish(),
       total_tokens: z.number(),
       cost: z
-        .union([
-          z.number(),
-          z.object({ total_cost: z.number() }).passthrough(),
-        ])
+        .union([z.number(), z.object({ total_cost: z.number() }).passthrough()])
         .optional(),
       cost_details: z
         .object({

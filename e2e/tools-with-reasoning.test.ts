@@ -1,13 +1,13 @@
 import type { ModelMessage } from 'ai';
 
-import { generateText } from 'ai';
-import { it, vi } from 'vitest';
 import {
   executeCommandInTerminalTool,
   readSMSTool,
   sendSMSTool,
 } from '@/e2e/tools';
 import { createLLMGateway } from '@/src';
+import { generateText } from 'ai';
+import { it, vi } from 'vitest';
 
 vi.setConfig({
   testTimeout: 42_000,
