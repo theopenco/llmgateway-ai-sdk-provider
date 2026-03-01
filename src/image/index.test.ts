@@ -5,9 +5,18 @@ const TEST_BASE64_IMAGE =
   'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==';
 
 const testUrl = 'https://test.llmgateway.io/v1/images/generations';
+const testEditsUrl = 'https://test.llmgateway.io/v1/images/edits';
 
 const server = createTestServer({
   [testUrl]: {
+    response: {
+      type: 'json-value',
+      body: {
+        data: [{ b64_json: TEST_BASE64_IMAGE }],
+      },
+    },
+  },
+  [testEditsUrl]: {
     response: {
       type: 'json-value',
       body: {
@@ -213,6 +222,134 @@ describe('LLMGatewayImageModel', () => {
 
     it('should set provider to llmgateway.image', () => {
       expect(model.provider).toBe('llmgateway.image');
+    });
+
+    it('should send to /images/edits when files are provided', async () => {
+      await model.doGenerate({
+        prompt: 'add a hat',
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        files: [
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: TEST_BASE64_IMAGE,
+          },
+        ],
+        mask: undefined,
+        providerOptions: {},
+        headers: {},
+      });
+
+      expect(server.calls[0]!.url).toBe(testEditsUrl);
+      const body = await server.calls[0]!.requestBodyJson;
+      expect(body).toEqual({
+        model: 'qwen-image-plus',
+        prompt: 'add a hat',
+        n: 1,
+        response_format: 'b64_json',
+        images: [
+          {
+            image_url: `data:image/png;base64,${TEST_BASE64_IMAGE}`,
+          },
+        ],
+      });
+    });
+
+    it('should send to /images/edits with URL-type files', async () => {
+      await model.doGenerate({
+        prompt: 'make it blue',
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        files: [
+          {
+            type: 'url',
+            url: 'https://example.com/image.png',
+          },
+        ],
+        mask: undefined,
+        providerOptions: {},
+        headers: {},
+      });
+
+      expect(server.calls[0]!.url).toBe(testEditsUrl);
+      const body = await server.calls[0]!.requestBodyJson;
+      expect(body).toEqual({
+        model: 'qwen-image-plus',
+        prompt: 'make it blue',
+        n: 1,
+        response_format: 'b64_json',
+        images: [
+          {
+            image_url: 'https://example.com/image.png',
+          },
+        ],
+      });
+    });
+
+    it('should send to /images/edits with Uint8Array file data', async () => {
+      const binaryData = new Uint8Array([137, 80, 78, 71]);
+      await model.doGenerate({
+        prompt: 'edit this',
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        files: [
+          {
+            type: 'file',
+            mediaType: 'image/png',
+            data: binaryData,
+          },
+        ],
+        mask: undefined,
+        providerOptions: {},
+        headers: {},
+      });
+
+      expect(server.calls[0]!.url).toBe(testEditsUrl);
+      const body = await server.calls[0]!.requestBodyJson;
+      expect(body.images).toEqual([
+        {
+          image_url: `data:image/png;base64,${Buffer.from(binaryData).toString('base64')}`,
+        },
+      ]);
+    });
+
+    it('should send to /images/generations when files is undefined', async () => {
+      await model.doGenerate({
+        prompt: 'a cat',
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        files: undefined,
+        mask: undefined,
+        providerOptions: {},
+        headers: {},
+      });
+
+      expect(server.calls[0]!.url).toBe(testUrl);
+    });
+
+    it('should send to /images/generations when files is empty', async () => {
+      await model.doGenerate({
+        prompt: 'a cat',
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        files: [],
+        mask: undefined,
+        providerOptions: {},
+        headers: {},
+      });
+
+      expect(server.calls[0]!.url).toBe(testUrl);
     });
   });
 });
