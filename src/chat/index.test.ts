@@ -1,13 +1,11 @@
 import type { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import type { ImageResponse } from '../schemas/image';
 import type { ReasoningDetailUnion } from '../schemas/reasoning-details';
 
-import {
-  convertReadableStreamToArray,
-} from '@ai-sdk/provider-utils/test';
+import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 
 import { createLLMGateway } from '../provider';
 import { ReasoningDetailType } from '../schemas/reasoning-details';
-import type { ImageResponse } from '../schemas/image';
 import { createTestServer } from '../tests/create-test-server';
 
 const TEST_PROMPT: LanguageModelV2Prompt = [
@@ -109,7 +107,8 @@ const TEST_LOGPROBS = {
   ],
 };
 
-const TEST_IMAGE_URL = "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABAAAAAQACAIAAADwf7zUAAAAiXpUWHRSYXcgcHJvZmlsZSB0eXBlIGlwdGMAAAiZTYwxDgIxDAT7vOKekDjrtV1T0VHwgbtcIiEhgfh/QaDgmGlWW0w6X66n5fl6jNu9p+ULkapDENgzpj+Kl5aFfa6KnYWgSjZjGOiSYRxTY/v8KIijI==";
+const TEST_IMAGE_URL =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABAAAAAQACAIAAADwf7zUAAAAiXpUWHRSYXcgcHJvZmlsZSB0eXBlIGlwdGMAAAiZTYwxDgIxDAT7vOKekDjrtV1T0VHwgbtcIiEhgfh/QaDgmGlWW0w6X66n5fl6jNu9p+ULkapDENgzpj+Kl5aFfa6KnYWgSjZjGOiSYRxTY/v8KIijI==';
 
 const TEST_IMAGE_BASE64 = TEST_IMAGE_URL.split(',')[1]!;
 

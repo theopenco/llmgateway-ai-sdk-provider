@@ -27,7 +27,9 @@ export type TestServer = {
   fetch: typeof fetch;
 };
 
-function toHeadersRecord(headers: HeadersInit | undefined): Record<string, string> {
+function toHeadersRecord(
+  headers: HeadersInit | undefined,
+): Record<string, string> {
   if (!headers) return {};
 
   if (headers instanceof Headers) {
@@ -61,7 +63,9 @@ function streamFromChunks(chunks: string[]): ReadableStream<Uint8Array> {
  * - `server.calls[]` for request inspection
  * - `server.fetch` to inject into provider options (`createLLMGateway({ fetch: server.fetch })`)
  */
-export function createTestServer(urls: Record<string, TestServerUrlConfig>): TestServer {
+export function createTestServer(
+  urls: Record<string, TestServerUrlConfig>,
+): TestServer {
   const calls: TestServerCall[] = [];
 
   const testFetch: typeof fetch = async (input, init) => {
@@ -122,5 +126,3 @@ export function createTestServer(urls: Record<string, TestServerUrlConfig>): Tes
 
   return { urls, calls, fetch: testFetch };
 }
-
-

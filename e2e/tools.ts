@@ -1,8 +1,8 @@
 // ref: https://github.com/t3dotgg/SnitchScript/blob/main/tools.ts
 
+import { createLLMGateway } from '@/src';
 import { generateText, tool } from 'ai';
 import { z } from 'zod/v4';
-import { createLLMGateway } from '@/src';
 
 const llmgateway = createLLMGateway({
   apiKey: process.env.LLM_GATEWAY_API_KEY,

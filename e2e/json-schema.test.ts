@@ -1,6 +1,6 @@
-import { generateObject, streamObject } from 'ai';
-import { it, expect, vi } from 'vitest';
 import { createLLMGateway } from '@/src';
+import { generateObject, streamObject } from 'ai';
+import { expect, it, vi } from 'vitest';
 import { z } from 'zod/v3';
 
 vi.setConfig({
@@ -8,14 +8,20 @@ vi.setConfig({
 });
 
 const schema = z.object({
-  recipe: z.object({
-    name: z.string().describe('Name of the recipe'),
-    ingredients: z.array(z.object({
-      name: z.string().describe('Name of the ingredient'),
-      amount: z.string().describe('Amount of the ingredient'),
-    })).describe('List of ingredients'),
-    steps: z.array(z.string()).describe('Cooking steps'),
-  }).describe('Recipe details'),
+  recipe: z
+    .object({
+      name: z.string().describe('Name of the recipe'),
+      ingredients: z
+        .array(
+          z.object({
+            name: z.string().describe('Name of the ingredient'),
+            amount: z.string().describe('Amount of the ingredient'),
+          }),
+        )
+        .describe('List of ingredients'),
+      steps: z.array(z.string()).describe('Cooking steps'),
+    })
+    .describe('Recipe details'),
 });
 
 it('should generate structured output with json_schema using generateObject', async () => {

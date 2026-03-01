@@ -3,6 +3,11 @@ import type {
   ImageModelV3CallOptions,
   SharedV3Warning,
 } from '@ai-sdk/provider';
+import type {
+  LLMGatewayImageModelId,
+  LLMGatewayImageSettings,
+} from '../types/llmgateway-image-settings';
+
 import {
   combineHeaders,
   createJsonResponseHandler,
@@ -11,10 +16,6 @@ import {
 import { z } from 'zod/v4';
 
 import { llmgatewayFailedResponseHandler } from '../schemas/error-response';
-import type {
-  LLMGatewayImageModelId,
-  LLMGatewayImageSettings,
-} from '../types/llmgateway-image-settings';
 
 type LLMGatewayImageConfig = {
   provider: string;
@@ -54,9 +55,7 @@ export class LLMGatewayImageModel implements ImageModelV3 {
     this.provider = config.provider;
   }
 
-  async doGenerate(
-    options: ImageModelV3CallOptions,
-  ): Promise<{
+  async doGenerate(options: ImageModelV3CallOptions): Promise<{
     images: Array<string>;
     warnings: Array<SharedV3Warning>;
     response: {
@@ -74,12 +73,28 @@ export class LLMGatewayImageModel implements ImageModelV3 {
       });
     }
 
+    const hasFiles = options.files != null && options.files.length > 0;
+
     const body: Record<string, unknown> = {
       model: this.modelId,
       prompt: options.prompt,
       n: options.n,
       response_format: 'b64_json',
     };
+
+    if (hasFiles) {
+      body.images = options.files!.map((file) => {
+        if (file.type === 'url') {
+          return { image_url: file.url };
+        }
+        const base64 =
+          typeof file.data === 'string'
+            ? file.data
+            : Buffer.from(file.data).toString('base64');
+        const mediaType = file.mediaType ?? 'image/png';
+        return { image_url: `data:${mediaType};base64,${base64}` };
+      });
+    }
 
     if (options.size != null) {
       body.size = options.size;
@@ -91,7 +106,7 @@ export class LLMGatewayImageModel implements ImageModelV3 {
 
     const { value: response, responseHeaders } = await postJsonToApi({
       url: this.config.url({
-        path: '/images/generations',
+        path: hasFiles ? '/images/edits' : '/images/generations',
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
