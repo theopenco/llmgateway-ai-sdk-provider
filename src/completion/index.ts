@@ -1,11 +1,11 @@
 import type { z } from 'zod/v4';
 import type { LLMGatewayChatModelId } from '@/src/types/llmgateway-chat-settings';
 import type {
-  LanguageModelV2,
-  LanguageModelV2CallOptions,
-  LanguageModelV2FinishReason,
-  LanguageModelV2StreamPart,
-  LanguageModelV2Usage,
+  LanguageModelV3,
+  LanguageModelV3CallOptions,
+  LanguageModelV3FinishReason,
+  LanguageModelV3StreamPart,
+  LanguageModelV3Usage,
 } from '@ai-sdk/provider';
 import type { ParseResult } from '@ai-sdk/provider-utils';
 import type { LLMGatewayUsageAccounting } from '../types';
@@ -34,8 +34,8 @@ type LLMGatewayCompletionConfig = {
   extraBody?: Record<string, unknown>;
 };
 
-export class LLMGatewayCompletionLanguageModel implements LanguageModelV2 {
-  readonly specificationVersion = 'v2' as const;
+export class LLMGatewayCompletionLanguageModel implements LanguageModelV3 {
+  readonly specificationVersion = 'v3' as const;
   readonly provider = 'llmgateway';
   readonly modelId: LLMGatewayChatModelId;
   readonly supportedUrls: Record<string, RegExp[]> = {
@@ -46,7 +46,6 @@ export class LLMGatewayCompletionLanguageModel implements LanguageModelV2 {
     'text/*': [/^data:text\//, /^https?:\/\/.+$/],
     'application/*': [/^data:application\//, /^https?:\/\/.+$/],
   };
-  readonly defaultObjectGenerationMode = undefined;
   readonly settings: LLMGatewayCompletionSettings;
 
   private readonly config: LLMGatewayCompletionConfig;
@@ -74,7 +73,7 @@ export class LLMGatewayCompletionLanguageModel implements LanguageModelV2 {
     stopSequences,
     tools,
     toolChoice,
-  }: LanguageModelV2CallOptions) {
+  }: LanguageModelV3CallOptions) {
     const { prompt: completionPrompt } = convertToLLMGatewayCompletionPrompt({
       prompt,
       inputFormat: 'prompt',
@@ -136,8 +135,8 @@ export class LLMGatewayCompletionLanguageModel implements LanguageModelV2 {
   }
 
   async doGenerate(
-    options: LanguageModelV2CallOptions,
-  ): Promise<Awaited<ReturnType<LanguageModelV2['doGenerate']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
     const providerOptions = options.providerOptions || {};
     const llmgatewayOptions = providerOptions.llmgateway || {};
 
@@ -180,15 +179,20 @@ export class LLMGatewayCompletionLanguageModel implements LanguageModelV2 {
       ],
       finishReason: mapLLMGatewayFinishReason(choice.finish_reason),
       usage: {
-        inputTokens: response.usage?.prompt_tokens ?? 0,
-        outputTokens: response.usage?.completion_tokens ?? 0,
-        totalTokens:
-          (response.usage?.prompt_tokens ?? 0) +
-          (response.usage?.completion_tokens ?? 0),
-        reasoningTokens:
-          response.usage?.completion_tokens_details?.reasoning_tokens ?? 0,
-        cachedInputTokens:
-          response.usage?.prompt_tokens_details?.cached_tokens ?? 0,
+        inputTokens: {
+          total: response.usage?.prompt_tokens ?? undefined,
+          noCache: undefined,
+          cacheRead:
+            response.usage?.prompt_tokens_details?.cached_tokens ?? undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: response.usage?.completion_tokens ?? undefined,
+          text: undefined,
+          reasoning:
+            response.usage?.completion_tokens_details?.reasoning_tokens ??
+            undefined,
+        },
       },
       warnings: [],
       response: {
@@ -198,8 +202,8 @@ export class LLMGatewayCompletionLanguageModel implements LanguageModelV2 {
   }
 
   async doStream(
-    options: LanguageModelV2CallOptions,
-  ): Promise<Awaited<ReturnType<LanguageModelV2['doStream']>>> {
+    options: LanguageModelV3CallOptions,
+  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
     const providerOptions = options.providerOptions || {};
     const llmgatewayOptions = providerOptions.llmgateway || {};
 
@@ -232,13 +236,19 @@ export class LLMGatewayCompletionLanguageModel implements LanguageModelV2 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV2FinishReason = 'other';
-    const usage: LanguageModelV2Usage = {
-      inputTokens: Number.NaN,
-      outputTokens: Number.NaN,
-      totalTokens: Number.NaN,
-      reasoningTokens: Number.NaN,
-      cachedInputTokens: Number.NaN,
+    let finishReason: LanguageModelV3FinishReason = { unified: 'other', raw: undefined };
+    const usage: LanguageModelV3Usage = {
+      inputTokens: {
+        total: undefined,
+        noCache: undefined,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: undefined,
+        text: undefined,
+        reasoning: undefined,
+      },
     };
 
     const llmgatewayUsage: Partial<LLMGatewayUsageAccounting> = {};
@@ -246,12 +256,12 @@ export class LLMGatewayCompletionLanguageModel implements LanguageModelV2 {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof LLMGatewayCompletionChunkSchema>>,
-          LanguageModelV2StreamPart
+          LanguageModelV3StreamPart
         >({
           transform(chunk, controller) {
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -260,16 +270,14 @@ export class LLMGatewayCompletionLanguageModel implements LanguageModelV2 {
 
             // handle error chunks:
             if ('error' in value) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: value.error });
               return;
             }
 
             if (value.usage != null) {
-              usage.inputTokens = value.usage.prompt_tokens;
-              usage.outputTokens = value.usage.completion_tokens;
-              usage.totalTokens =
-                value.usage.prompt_tokens + value.usage.completion_tokens;
+              usage.inputTokens.total = value.usage.prompt_tokens;
+              usage.outputTokens.total = value.usage.completion_tokens;
 
               // Collect LLMGateway specific usage information
               llmgatewayUsage.promptTokens = value.usage.prompt_tokens;
@@ -278,7 +286,7 @@ export class LLMGatewayCompletionLanguageModel implements LanguageModelV2 {
                 const cachedInputTokens =
                   value.usage.prompt_tokens_details.cached_tokens ?? 0;
 
-                usage.cachedInputTokens = cachedInputTokens;
+                usage.inputTokens.cacheRead = cachedInputTokens;
                 llmgatewayUsage.promptTokensDetails = {
                   cachedTokens: cachedInputTokens,
                 };
@@ -289,7 +297,7 @@ export class LLMGatewayCompletionLanguageModel implements LanguageModelV2 {
                 const reasoningTokens =
                   value.usage.completion_tokens_details.reasoning_tokens ?? 0;
 
-                usage.reasoningTokens = reasoningTokens;
+                usage.outputTokens.reasoning = reasoningTokens;
                 llmgatewayUsage.completionTokensDetails = {
                   reasoningTokens,
                 };

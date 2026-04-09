@@ -164,7 +164,7 @@ describe('LLMGateway Streaming Usage Accounting', () => {
     expect(finishChunk).toBeDefined();
 
     // Verify that provider metadata is not included
-    expect(finishChunk?.providerMetadata?.llmgateway).toStrictEqual({
+    expect((finishChunk?.providerMetadata as any)?.llmgateway).toStrictEqual({
       usage: {},
     });
   });

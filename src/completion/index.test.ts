@@ -1,11 +1,11 @@
-import type { LanguageModelV2Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
 
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 
 import { createLLMGateway } from '../provider';
 import { createTestServer } from '../tests/create-test-server';
 
-const TEST_PROMPT: LanguageModelV2Prompt = [
+const TEST_PROMPT: LanguageModelV3Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -121,11 +121,17 @@ describe('doGenerate', () => {
     });
 
     expect(usage).toStrictEqual({
-      inputTokens: 20,
-      outputTokens: 5,
-      totalTokens: 25,
-      reasoningTokens: 0,
-      cachedInputTokens: 0,
+      inputTokens: {
+        total: 20,
+        noCache: undefined,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: 5,
+        text: undefined,
+        reasoning: undefined,
+      },
     });
   });
 
@@ -157,7 +163,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-    expect(finishReason).toStrictEqual('stop');
+    expect(finishReason).toStrictEqual({ unified: 'stop', raw: 'stop' });
   });
 
   it('should support unknown finish reason', async () => {
@@ -172,7 +178,7 @@ describe('doGenerate', () => {
         prompt: TEST_PROMPT,
       });
 
-    expect(finishReason).toStrictEqual('unknown');
+    expect(finishReason).toStrictEqual({ unified: 'other', raw: 'eos' });
   });
 
   it('should pass the model and the prompt', async () => {
@@ -321,7 +327,7 @@ describe('doStream', () => {
       { type: 'text-delta', delta: '', id: expect.any(String) },
       {
         type: 'finish',
-        finishReason: 'stop',
+        finishReason: { unified: 'stop', raw: 'stop' },
         providerMetadata: {
           llmgateway: {
             usage: {
@@ -333,11 +339,17 @@ describe('doStream', () => {
           },
         },
         usage: {
-          inputTokens: 10,
-          outputTokens: 362,
-          totalTokens: 372,
-          reasoningTokens: Number.NaN,
-          cachedInputTokens: Number.NaN,
+          inputTokens: {
+            total: 10,
+            noCache: undefined,
+            cacheRead: undefined,
+            cacheWrite: undefined,
+          },
+          outputTokens: {
+            total: 362,
+            text: undefined,
+            reasoning: undefined,
+          },
         },
       },
     ]);
@@ -371,7 +383,7 @@ describe('doStream', () => {
         },
       },
       {
-        finishReason: 'error',
+        finishReason: { unified: 'error', raw: undefined },
         providerMetadata: {
           llmgateway: {
             usage: {},
@@ -379,11 +391,17 @@ describe('doStream', () => {
         },
         type: 'finish',
         usage: {
-          inputTokens: Number.NaN,
-          outputTokens: Number.NaN,
-          totalTokens: Number.NaN,
-          reasoningTokens: Number.NaN,
-          cachedInputTokens: Number.NaN,
+          inputTokens: {
+            total: undefined,
+            noCache: undefined,
+            cacheRead: undefined,
+            cacheWrite: undefined,
+          },
+          outputTokens: {
+            total: undefined,
+            text: undefined,
+            reasoning: undefined,
+          },
         },
       },
     ]);
@@ -404,7 +422,7 @@ describe('doStream', () => {
     expect(elements.length).toBe(2);
     expect(elements[0]?.type).toBe('error');
     expect(elements[1]).toStrictEqual({
-      finishReason: 'error',
+      finishReason: { unified: 'error', raw: undefined },
       providerMetadata: {
         llmgateway: {
           usage: {},
@@ -412,11 +430,17 @@ describe('doStream', () => {
       },
       type: 'finish',
       usage: {
-        inputTokens: Number.NaN,
-        outputTokens: Number.NaN,
-        totalTokens: Number.NaN,
-        reasoningTokens: Number.NaN,
-        cachedInputTokens: Number.NaN,
+        inputTokens: {
+          total: undefined,
+          noCache: undefined,
+          cacheRead: undefined,
+          cacheWrite: undefined,
+        },
+        outputTokens: {
+          total: undefined,
+          text: undefined,
+          reasoning: undefined,
+        },
       },
     });
   });

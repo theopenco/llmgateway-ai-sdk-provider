@@ -1,10 +1,10 @@
 import type { ReasoningDetailUnion } from '@/src/schemas/reasoning-details';
 import type {
-  LanguageModelV2FilePart,
-  LanguageModelV2Prompt,
-  LanguageModelV2TextPart,
-  LanguageModelV2ToolResultPart,
-  SharedV2ProviderMetadata,
+  LanguageModelV3FilePart,
+  LanguageModelV3Prompt,
+  LanguageModelV3TextPart,
+  LanguageModelV3ToolResultPart,
+  SharedV3ProviderOptions,
 } from '@ai-sdk/provider';
 import type {
   ChatCompletionContentPart,
@@ -20,7 +20,7 @@ import { isUrl } from './is-url';
 export type LLMGatewayCacheControl = { type: 'ephemeral' };
 
 function getCacheControl(
-  providerOptions: SharedV2ProviderMetadata | undefined,
+  providerOptions: SharedV3ProviderOptions | undefined,
 ): LLMGatewayCacheControl | undefined {
   const anthropic = providerOptions?.anthropic;
   const llmgateway = providerOptions?.llmgateway;
@@ -33,7 +33,7 @@ function getCacheControl(
 }
 
 export function convertToLLMGatewayChatMessages(
-  prompt: LanguageModelV2Prompt,
+  prompt: LanguageModelV3Prompt,
 ): LLMGatewayChatCompletionsInput {
   const messages: LLMGatewayChatCompletionsInput = [];
   for (const { role, content, providerOptions } of prompt) {
@@ -72,7 +72,7 @@ export function convertToLLMGatewayChatMessages(
         // Get message level cache control
         const messageCacheControl = getCacheControl(providerOptions);
         const contentParts: ChatCompletionContentPart[] = content.map(
-          (part: LanguageModelV2TextPart | LanguageModelV2FilePart) => {
+          (part: LanguageModelV3TextPart | LanguageModelV3FilePart) => {
             const cacheControl =
               getCacheControl(part.providerOptions) ?? messageCacheControl;
 
@@ -215,6 +215,7 @@ export function convertToLLMGatewayChatMessages(
 
       case 'tool': {
         for (const toolResponse of content) {
+          if (toolResponse.type !== 'tool-result') continue;
           const content = getToolResultContent(toolResponse);
 
           messages.push({
@@ -238,8 +239,13 @@ export function convertToLLMGatewayChatMessages(
   return messages;
 }
 
-function getToolResultContent(input: LanguageModelV2ToolResultPart): string {
-  return input.output.type === 'text'
-    ? input.output.value
-    : JSON.stringify(input.output.value);
+function getToolResultContent(input: LanguageModelV3ToolResultPart): string {
+  switch (input.output.type) {
+    case 'text':
+      return input.output.value;
+    case 'json':
+      return JSON.stringify(input.output.value);
+    default:
+      return JSON.stringify(input.output);
+  }
 }
