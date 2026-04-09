@@ -1,4 +1,4 @@
-import type { ImageModelV3, LanguageModelV2 } from '@ai-sdk/provider';
+import type { ImageModelV3 } from '@ai-sdk/provider';
 import type {
   LLMGatewayChatModelId,
   LLMGatewayChatSettings,
@@ -17,7 +17,7 @@ import { LLMGatewayImageModel } from './image';
 
 export type { LLMGatewayCompletionSettings };
 
-export interface LLMGatewayProvider extends LanguageModelV2 {
+export interface LLMGatewayProvider {
   (
     modelId: LLMGatewayChatModelId,
     settings?: LLMGatewayCompletionSettings,

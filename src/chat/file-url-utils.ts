@@ -1,4 +1,4 @@
-import type { LanguageModelV2FilePart } from '@ai-sdk/provider';
+import type { LanguageModelV3FilePart } from '@ai-sdk/provider';
 
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
 
@@ -8,7 +8,7 @@ export function getFileUrl({
   part,
   defaultMediaType,
 }: {
-  part: LanguageModelV2FilePart;
+  part: LanguageModelV3FilePart;
   defaultMediaType: string;
 }) {
   if (part.data instanceof Uint8Array) {

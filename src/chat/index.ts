@@ -2,15 +2,14 @@ import type { z } from 'zod/v4';
 import type { ReasoningDetailUnion } from '@/src/schemas/reasoning-details';
 import type { LLMGatewayUsageAccounting } from '@/src/types/index';
 import type {
-  LanguageModelV2,
-  LanguageModelV2CallOptions,
-  LanguageModelV2CallWarning,
-  LanguageModelV2Content,
-  LanguageModelV2FinishReason,
-  LanguageModelV2ResponseMetadata,
-  LanguageModelV2StreamPart,
-  LanguageModelV2Usage,
-  SharedV2Headers,
+  LanguageModelV3,
+  LanguageModelV3CallOptions,
+  LanguageModelV3Content,
+  LanguageModelV3FinishReason,
+  LanguageModelV3GenerateResult,
+  LanguageModelV3StreamPart,
+  LanguageModelV3StreamResult,
+  LanguageModelV3Usage,
 } from '@ai-sdk/provider';
 import type { ParseResult } from '@ai-sdk/provider-utils';
 import type {
@@ -48,10 +47,9 @@ type LLMGatewayChatConfig = {
   extraBody?: Record<string, unknown>;
 };
 
-export class LLMGatewayChatLanguageModel implements LanguageModelV2 {
-  readonly specificationVersion = 'v2' as const;
+export class LLMGatewayChatLanguageModel implements LanguageModelV3 {
+  readonly specificationVersion = 'v3' as const;
   readonly provider = 'llmgateway';
-  readonly defaultObjectGenerationMode = 'tool' as const;
 
   readonly modelId: LLMGatewayChatModelId;
   readonly supportedUrls: Record<string, RegExp[]> = {
@@ -89,7 +87,7 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV2 {
     topK,
     tools,
     toolChoice,
-  }: LanguageModelV2CallOptions) {
+  }: LanguageModelV3CallOptions) {
     const baseArgs = {
       // model id:
       model: this.modelId,
@@ -187,22 +185,7 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV2 {
     return baseArgs;
   }
 
-  async doGenerate(options: LanguageModelV2CallOptions): Promise<{
-    content: Array<LanguageModelV2Content>;
-    finishReason: LanguageModelV2FinishReason;
-    usage: LanguageModelV2Usage;
-    warnings: Array<LanguageModelV2CallWarning>;
-    providerMetadata?: {
-      llmgateway: {
-        usage: LLMGatewayUsageAccounting;
-      };
-    };
-    request?: { body?: unknown };
-    response?: LanguageModelV2ResponseMetadata & {
-      headers?: SharedV2Headers;
-      body?: unknown;
-    };
-  }> {
+  async doGenerate(options: LanguageModelV3CallOptions): Promise<LanguageModelV3GenerateResult> {
     const providerOptions = options.providerOptions || {};
     const llmgatewayOptions = providerOptions.llmgateway || {};
 
@@ -234,29 +217,40 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV2 {
     }
 
     // Extract detailed usage information
-    const usageInfo: LanguageModelV2Usage = response.usage
+    const usageInfo: LanguageModelV3Usage = response.usage
       ? {
-          inputTokens: response.usage.prompt_tokens ?? 0,
-          outputTokens: response.usage.completion_tokens ?? 0,
-          totalTokens:
-            (response.usage.prompt_tokens ?? 0) +
-            (response.usage.completion_tokens ?? 0),
-          reasoningTokens:
-            response.usage.completion_tokens_details?.reasoning_tokens ?? 0,
-          cachedInputTokens:
-            response.usage.prompt_tokens_details?.cached_tokens ?? 0,
+          inputTokens: {
+            total: response.usage.prompt_tokens ?? undefined,
+            noCache: undefined,
+            cacheRead:
+              response.usage.prompt_tokens_details?.cached_tokens ?? undefined,
+            cacheWrite: undefined,
+          },
+          outputTokens: {
+            total: response.usage.completion_tokens ?? undefined,
+            text: undefined,
+            reasoning:
+              response.usage.completion_tokens_details?.reasoning_tokens ??
+              undefined,
+          },
         }
       : {
-          inputTokens: 0,
-          outputTokens: 0,
-          totalTokens: 0,
-          reasoningTokens: 0,
-          cachedInputTokens: 0,
+          inputTokens: {
+            total: undefined,
+            noCache: undefined,
+            cacheRead: undefined,
+            cacheWrite: undefined,
+          },
+          outputTokens: {
+            total: undefined,
+            text: undefined,
+            reasoning: undefined,
+          },
         };
 
     const reasoningDetails = choice.message.reasoning_details ?? [];
 
-    const reasoning: Array<LanguageModelV2Content> =
+    const reasoning: Array<LanguageModelV3Content> =
       reasoningDetails.length > 0
         ? (reasoningDetails
             .map((detail: ReasoningDetailUnion) => {
@@ -297,8 +291,8 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV2 {
               return null;
             })
             .filter(
-              (p): p is { type: 'reasoning'; text: string } => p !== null,
-            ) as LanguageModelV2Content[])
+              (p: { type: 'reasoning'; text: string } | null): p is { type: 'reasoning'; text: string } => p !== null,
+            ) as LanguageModelV3Content[])
         : choice.message.reasoningText
           ? [
               {
@@ -308,7 +302,7 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV2 {
             ]
           : [];
 
-    const content: Array<LanguageModelV2Content> = [];
+    const content: Array<LanguageModelV3Content> = [];
 
     // Add reasoning content first
     content.push(...reasoning);
@@ -369,9 +363,11 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV2 {
         ? {
             llmgateway: {
               usage: {
-                promptTokens: usageInfo.inputTokens ?? 0,
-                completionTokens: usageInfo.outputTokens ?? 0,
-                totalTokens: usageInfo.totalTokens ?? 0,
+                promptTokens: usageInfo.inputTokens.total ?? 0,
+                completionTokens: usageInfo.outputTokens.total ?? 0,
+                totalTokens:
+                  (usageInfo.inputTokens.total ?? 0) +
+                  (usageInfo.outputTokens.total ?? 0),
                 cost:
                   typeof response.usage?.cost === 'number'
                     ? response.usage.cost
@@ -402,15 +398,7 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV2 {
     };
   }
 
-  async doStream(options: LanguageModelV2CallOptions): Promise<{
-    stream: ReadableStream<LanguageModelV2StreamPart>;
-    warnings: Array<LanguageModelV2CallWarning>;
-    request?: { body?: unknown };
-    response?: LanguageModelV2ResponseMetadata & {
-      headers?: SharedV2Headers;
-      body?: unknown;
-    };
-  }> {
+  async doStream(options: LanguageModelV3CallOptions): Promise<LanguageModelV3StreamResult> {
     const providerOptions = options.providerOptions || {};
     const llmgatewayOptions = providerOptions.llmgateway || {};
 
@@ -454,13 +442,19 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV2 {
       sent: boolean;
     }> = [];
 
-    let finishReason: LanguageModelV2FinishReason = 'other';
-    const usage: LanguageModelV2Usage = {
-      inputTokens: Number.NaN,
-      outputTokens: Number.NaN,
-      totalTokens: Number.NaN,
-      reasoningTokens: Number.NaN,
-      cachedInputTokens: Number.NaN,
+    let finishReason: LanguageModelV3FinishReason = { unified: 'other', raw: undefined };
+    const usage: LanguageModelV3Usage = {
+      inputTokens: {
+        total: undefined,
+        noCache: undefined,
+        cacheRead: undefined,
+        cacheWrite: undefined,
+      },
+      outputTokens: {
+        total: undefined,
+        text: undefined,
+        reasoning: undefined,
+      },
     };
 
     // Track provider-specific usage information
@@ -478,12 +472,12 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV2 {
           ParseResult<
             z.infer<typeof LLMGatewayStreamChatCompletionChunkSchema>
           >,
-          LanguageModelV2StreamPart
+          LanguageModelV3StreamPart
         >({
           transform(chunk, controller) {
             // handle failed chunk parsing / validation:
             if (!chunk.success) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: chunk.error });
               return;
             }
@@ -492,7 +486,7 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV2 {
 
             // handle error chunks:
             if ('error' in value) {
-              finishReason = 'error';
+              finishReason = { unified: 'error', raw: undefined };
               controller.enqueue({ type: 'error', error: value.error });
               return;
             }
@@ -513,10 +507,8 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV2 {
             }
 
             if (value.usage != null) {
-              usage.inputTokens = value.usage.prompt_tokens;
-              usage.outputTokens = value.usage.completion_tokens;
-              usage.totalTokens =
-                value.usage.prompt_tokens + value.usage.completion_tokens;
+              usage.inputTokens.total = value.usage.prompt_tokens;
+              usage.outputTokens.total = value.usage.completion_tokens;
 
               // Collect LLMGateway specific usage information
               llmgatewayUsage.promptTokens = value.usage.prompt_tokens;
@@ -525,7 +517,7 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV2 {
                 const cachedInputTokens =
                   value.usage.prompt_tokens_details.cached_tokens ?? 0;
 
-                usage.cachedInputTokens = cachedInputTokens;
+                usage.inputTokens.cacheRead = cachedInputTokens;
                 llmgatewayUsage.promptTokensDetails = {
                   cachedTokens: cachedInputTokens,
                 };
@@ -536,7 +528,7 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV2 {
                 const reasoningTokens =
                   value.usage.completion_tokens_details.reasoning_tokens ?? 0;
 
-                usage.reasoningTokens = reasoningTokens;
+                usage.outputTokens.reasoning = reasoningTokens;
                 llmgatewayUsage.completionTokensDetails = {
                   reasoningTokens,
                 };
@@ -776,7 +768,7 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV2 {
 
           flush(controller) {
             // Forward any unsent tool calls if finish reason is 'tool-calls'
-            if (finishReason === 'tool-calls') {
+            if (finishReason.unified === 'tool-calls') {
               for (const toolCall of toolCalls) {
                 if (toolCall && !toolCall.sent) {
                   controller.enqueue({
@@ -819,7 +811,6 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV2 {
           },
         }),
       ),
-      warnings: [],
       request: { body: args },
       response: { headers: responseHeaders },
     };
