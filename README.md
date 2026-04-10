@@ -13,11 +13,11 @@ The [LLMGateway](https://llmgateway.io/) provider for the [Vercel AI SDK](https:
 ## Setup
 
 ```bash
-# For pnpm
-pnpm add @llmgateway/ai-sdk-provider
-
 # For npm
 npm install @llmgateway/ai-sdk-provider
+
+# For pnpm
+pnpm add @llmgateway/ai-sdk-provider
 
 # For yarn
 yarn add @llmgateway/ai-sdk-provider
