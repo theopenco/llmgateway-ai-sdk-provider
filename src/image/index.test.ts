@@ -125,6 +125,119 @@ describe('LLMGatewayImageModel', () => {
       });
     });
 
+    it('should send quality in body when provided', async () => {
+      await model.doGenerate({
+        prompt: 'a detailed landscape',
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        quality: 'high',
+        seed: undefined,
+        files: undefined,
+        mask: undefined,
+        providerOptions: {},
+        headers: {},
+      });
+
+      const body = await server.calls[0]!.requestBodyJson;
+      expect(body).toEqual({
+        model: 'qwen-image-plus',
+        prompt: 'a detailed landscape',
+        n: 1,
+        response_format: 'b64_json',
+        quality: 'high',
+      });
+    });
+
+    it('should include extraBody from provider settings', async () => {
+      const extraBodyProvider = createLLMGateway({
+        apiKey: 'test-api-key',
+        baseURL: 'https://test.llmgateway.io/v1',
+        compatibility: 'strict',
+        fetch: server.fetch,
+        extraBody: {
+          watermark: false,
+        },
+      });
+
+      await extraBodyProvider.image('qwen-image-plus').doGenerate({
+        prompt: 'a logo',
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        files: undefined,
+        mask: undefined,
+        providerOptions: {},
+        headers: {},
+      });
+
+      const body = await server.calls[0]!.requestBodyJson;
+      expect(body).toEqual({
+        model: 'qwen-image-plus',
+        prompt: 'a logo',
+        n: 1,
+        response_format: 'b64_json',
+        watermark: false,
+      });
+    });
+
+    it('should include extraBody from image model settings', async () => {
+      const extraBodyModel = provider.image('qwen-image-plus', {
+        extraBody: {
+          negative_prompt: 'blurry',
+        },
+      });
+
+      await extraBodyModel.doGenerate({
+        prompt: 'a portrait',
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        files: undefined,
+        mask: undefined,
+        providerOptions: {},
+        headers: {},
+      });
+
+      const body = await server.calls[0]!.requestBodyJson;
+      expect(body).toEqual({
+        model: 'qwen-image-plus',
+        prompt: 'a portrait',
+        n: 1,
+        response_format: 'b64_json',
+        negative_prompt: 'blurry',
+      });
+    });
+
+    it('should include llmgateway providerOptions in body', async () => {
+      await model.doGenerate({
+        prompt: 'a city',
+        n: 1,
+        size: undefined,
+        aspectRatio: undefined,
+        seed: undefined,
+        files: undefined,
+        mask: undefined,
+        providerOptions: {
+          llmgateway: {
+            style: 'photorealistic',
+          },
+        },
+        headers: {},
+      });
+
+      const body = await server.calls[0]!.requestBodyJson;
+      expect(body).toEqual({
+        model: 'qwen-image-plus',
+        prompt: 'a city',
+        n: 1,
+        response_format: 'b64_json',
+        style: 'photorealistic',
+      });
+    });
+
     it('should warn for unsupported seed', async () => {
       const result = await model.doGenerate({
         prompt: 'a dog',

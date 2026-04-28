@@ -1,3 +1,5 @@
 export type LLMGatewayImageModelId = string;
 
-export type LLMGatewayImageSettings = {};
+export type LLMGatewayImageSettings = {
+  extraBody?: Record<string, unknown>;
+};
