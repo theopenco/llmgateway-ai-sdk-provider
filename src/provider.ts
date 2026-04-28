@@ -167,6 +167,7 @@ export function createLLMGateway(
       url: ({ path }) => `${baseURL}${path}`,
       headers: getHeaders,
       fetch: options.fetch,
+      extraBody: options.extraBody,
     });
 
   const createLanguageModel = (

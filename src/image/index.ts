@@ -22,6 +22,11 @@ type LLMGatewayImageConfig = {
   headers: () => Record<string, string | undefined>;
   url: (options: { modelId: string; path: string }) => string;
   fetch?: typeof fetch;
+  extraBody?: Record<string, unknown>;
+};
+
+type LLMGatewayImageModelCallOptions = ImageModelV3CallOptions & {
+  quality?: string;
 };
 
 const LLMGatewayImageResponseSchema = z.object({
@@ -55,7 +60,7 @@ export class LLMGatewayImageModel implements ImageModelV3 {
     this.provider = config.provider;
   }
 
-  async doGenerate(options: ImageModelV3CallOptions): Promise<{
+  async doGenerate(options: LLMGatewayImageModelCallOptions): Promise<{
     images: Array<string>;
     warnings: Array<SharedV3Warning>;
     response: {
@@ -104,13 +109,26 @@ export class LLMGatewayImageModel implements ImageModelV3 {
       body.aspect_ratio = options.aspectRatio;
     }
 
+    if (options.quality != null) {
+      body.quality = options.quality;
+    }
+
+    const providerOptions = options.providerOptions || {};
+    const llmgatewayOptions = providerOptions.llmgateway || {};
+    const requestBody = {
+      ...body,
+      ...this.config.extraBody,
+      ...this.settings.extraBody,
+      ...llmgatewayOptions,
+    };
+
     const { value: response, responseHeaders } = await postJsonToApi({
       url: this.config.url({
         path: hasFiles ? '/images/edits' : '/images/generations',
         modelId: this.modelId,
       }),
       headers: combineHeaders(this.config.headers(), options.headers),
-      body,
+      body: requestBody,
       failedResponseHandler: llmgatewayFailedResponseHandler,
       successfulResponseHandler: createJsonResponseHandler(
         LLMGatewayImageResponseSchema,
