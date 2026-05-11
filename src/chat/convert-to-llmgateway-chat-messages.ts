@@ -8,13 +8,40 @@ import type {
 } from '@ai-sdk/provider';
 import type {
   ChatCompletionContentPart,
+  ChatCompletionInputAudioFormat,
   LLMGatewayChatCompletionsInput,
 } from '../types/llmgateway-chat-completions-input';
 
 import { ReasoningDetailType } from '@/src/schemas/reasoning-details';
 
-import { getFileUrl } from './file-url-utils';
+import { getBase64FromDataUrl, getFileUrl } from './file-url-utils';
 import { isUrl } from './is-url';
+
+const AUDIO_FORMAT_BY_MIME: Record<string, ChatCompletionInputAudioFormat> = {
+  'audio/wav': 'wav',
+  'audio/wave': 'wav',
+  'audio/x-wav': 'wav',
+  'audio/mpeg': 'mp3',
+  'audio/mp3': 'mp3',
+  'audio/mp4': 'mp4',
+  'audio/m4a': 'm4a',
+  'audio/x-m4a': 'm4a',
+  'audio/aac': 'aac',
+  'audio/ogg': 'ogg',
+  'audio/flac': 'flac',
+  'audio/aiff': 'aiff',
+  'audio/x-aiff': 'aiff',
+  'audio/webm': 'webm',
+};
+
+function audioFormatFromMime(
+  mime: string | undefined,
+): ChatCompletionInputAudioFormat | undefined {
+  if (!mime) return undefined;
+  const lower = mime.toLowerCase().split(';')[0]?.trim();
+  if (!lower) return undefined;
+  return AUDIO_FORMAT_BY_MIME[lower];
+}
 
 // Type for LLMGateway Cache Control following Anthropic's pattern
 export type LLMGatewayCacheControl = { type: 'ephemeral' };
@@ -98,6 +125,29 @@ export function convertToLLMGatewayChatMessages(
                     // For image parts, use part-specific or message-level cache control
                     cache_control: cacheControl,
                   };
+                }
+
+                if (part.mediaType?.startsWith('audio/')) {
+                  const format = audioFormatFromMime(part.mediaType);
+                  if (format) {
+                    const fileUrl = getFileUrl({
+                      part,
+                      defaultMediaType: part.mediaType,
+                    });
+                    // input_audio requires inline base64 per the OpenAI spec.
+                    // Skip remote URLs and let them fall through to the generic
+                    // file shape — fetching is the gateway/provider's job.
+                    if (fileUrl.startsWith('data:')) {
+                      return {
+                        type: 'input_audio' as const,
+                        input_audio: {
+                          data: getBase64FromDataUrl(fileUrl),
+                          format,
+                        },
+                        cache_control: cacheControl,
+                      } satisfies ChatCompletionContentPart;
+                    }
+                  }
                 }
 
                 const fileName = String(
