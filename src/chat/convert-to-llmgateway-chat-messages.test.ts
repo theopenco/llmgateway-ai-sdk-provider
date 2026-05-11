@@ -98,6 +98,160 @@ describe('user messages', () => {
 
     expect(result).toEqual([{ role: 'user', content: 'Hello' }]);
   });
+
+  it('should convert audio Uint8Array to input_audio', async () => {
+    const result = convertToLLMGatewayChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Transcribe this' },
+          {
+            type: 'file',
+            data: new Uint8Array([0, 1, 2, 3]),
+            mediaType: 'audio/wav',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Transcribe this' },
+          {
+            type: 'input_audio',
+            input_audio: { data: 'AAECAw==', format: 'wav' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should convert audio base64 data URL to input_audio', async () => {
+    const result = convertToLLMGatewayChatMessages([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Transcribe this' },
+          {
+            type: 'file',
+            data: 'data:audio/mpeg;base64,SUQzAAA=',
+            mediaType: 'audio/mpeg',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          { type: 'text', text: 'Transcribe this' },
+          {
+            type: 'input_audio',
+            input_audio: { data: 'SUQzAAA=', format: 'mp3' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should map common audio mime aliases to canonical formats', async () => {
+    const result = convertToLLMGatewayChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: new Uint8Array([0]),
+            mediaType: 'audio/x-m4a',
+          },
+          {
+            type: 'file',
+            data: new Uint8Array([0]),
+            mediaType: 'audio/webm',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'input_audio',
+            input_audio: { data: 'AA==', format: 'm4a' },
+          },
+          {
+            type: 'input_audio',
+            input_audio: { data: 'AA==', format: 'webm' },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should leave audio with remote http url as generic file (no inline data)', async () => {
+    const result = convertToLLMGatewayChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: 'https://example.com/audio.wav',
+            mediaType: 'audio/wav',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            file: {
+              filename: '',
+              file_data: 'https://example.com/audio.wav',
+            },
+          },
+        ],
+      },
+    ]);
+  });
+
+  it('should leave audio with unsupported mime as generic file', async () => {
+    const result = convertToLLMGatewayChatMessages([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            data: new Uint8Array([0, 1, 2, 3]),
+            mediaType: 'audio/3gpp',
+          },
+        ],
+      },
+    ]);
+
+    expect(result).toEqual([
+      {
+        role: 'user',
+        content: [
+          {
+            type: 'file',
+            file: {
+              filename: '',
+              file_data: 'data:audio/3gpp;base64,AAECAw==',
+            },
+          },
+        ],
+      },
+    ]);
+  });
 });
 
 describe('cache control', () => {

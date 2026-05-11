@@ -26,6 +26,7 @@ export interface ChatCompletionUserMessageParam {
 export type ChatCompletionContentPart =
   | ChatCompletionContentPartText
   | ChatCompletionContentPartImage
+  | ChatCompletionContentPartInputAudio
   | ChatCompletionContentPartFile;
 
 export interface ChatCompletionContentPartFile {
@@ -33,6 +34,29 @@ export interface ChatCompletionContentPartFile {
   file: {
     filename: string;
     file_data: string;
+  };
+  cache_control?: LLMGatewayCacheControl;
+}
+
+export type ChatCompletionInputAudioFormat =
+  | 'wav'
+  | 'mp3'
+  | 'aiff'
+  | 'aac'
+  | 'ogg'
+  | 'flac'
+  | 'm4a'
+  | 'mpeg'
+  | 'mpga'
+  | 'mp4'
+  | 'pcm'
+  | 'webm';
+
+export interface ChatCompletionContentPartInputAudio {
+  type: 'input_audio';
+  input_audio: {
+    data: string;
+    format: ChatCompletionInputAudioFormat;
   };
   cache_control?: LLMGatewayCacheControl;
 }
