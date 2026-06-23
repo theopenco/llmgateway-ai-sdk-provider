@@ -1,11 +1,9 @@
 import type { LLMGatewaySharedSettings } from '..';
-import type { models, Provider } from '../models';
 
-// Available models can be found at the LLMGateway API endpoint
-export type LLMGatewayChatModelId =
-  | (typeof models)[number]['id']
-  | `${Provider}/${(typeof models)[number]['id']}`
-  | 'test-model';
+// Available models can be found at the LLMGateway API endpoint:
+// https://api.llmgateway.io/models
+// Typed as a plain string so new models work without a package bump.
+export type LLMGatewayChatModelId = string;
 
 export type LLMGatewayChatSettings = {
   /**
