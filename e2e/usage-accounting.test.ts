@@ -1,56 +1,25 @@
 import { createLLMGateway } from '@/src';
 import { streamText } from 'ai';
-import { it } from 'vitest';
+import { expect, it } from 'vitest';
 
-it.skip('receive usage accounting', async () => {
-  const llmgateway = createLLMGateway({
+it('receives standard and gateway usage accounting', async () => {
+  const provider = createLLMGateway({
     apiKey: process.env.LLM_GATEWAY_API_KEY,
-    baseUrl: process.env.LLM_GATEWAY_API_BASE,
+    baseURL: process.env.LLM_GATEWAY_API_BASE,
+    compatibility: 'strict',
   });
-  const model = llmgateway('claude-3-7-sonnet', {
-    usage: {
-      include: true,
-    },
+  const result = streamText({
+    model: provider('gpt-4o-mini', { usage: { include: true } }),
+    prompt: 'What is the capital of France?',
+    maxOutputTokens: 32,
   });
-  const response = streamText({
-    model,
-    messages: [
-      {
-        role: 'user',
-
-        content: [
-          {
-            type: 'text',
-            text: 'What is the capital of France?',
-          },
-        ],
-      },
-    ],
-    onFinish(e) {
-      expect(e.providerMetadata?.llmgateway).toMatchObject({
-        usage: expect.objectContaining({
-          inputTokens: expect.any(Number),
-          outputTokens: expect.any(Number),
-          promptTokensDetails: expect.any(Object),
-          completionTokensDetails: expect.any(Object),
-          totalTokens: expect.any(Number),
-          cost: expect.any(Number),
-        }),
-      });
-    },
+  await result.consumeStream();
+  const usage = await result.usage;
+  expect(usage.inputTokens).toBeGreaterThan(0);
+  expect(usage.outputTokens).toBeGreaterThan(0);
+  expect((await result.providerMetadata)?.llmgateway?.usage).toMatchObject({
+    promptTokens: usage.inputTokens,
+    completionTokens: usage.outputTokens,
+    totalTokens: usage.totalTokens,
   });
-
-  await response.consumeStream();
-  const providerOptions = await response.providerMetadata;
-  // You can use expect.any(Type) or expect.objectContaining for schema-like matching
-  expect(providerOptions?.llmgateway).toMatchObject({
-    usage: expect.objectContaining({
-      inputTokens: expect.any(Number),
-      outputTokens: expect.any(Number),
-      promptTokensDetails: expect.any(Object),
-      completionTokensDetails: expect.any(Object),
-      totalTokens: expect.any(Number),
-      cost: expect.any(Number),
-    }),
-  });
-});
+}, 60_000);

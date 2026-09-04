@@ -30,7 +30,9 @@ export type TestServer = {
 function toHeadersRecord(
   headers: HeadersInit | undefined,
 ): Record<string, string> {
-  if (!headers) return {};
+  if (!headers) {
+    return {};
+  }
 
   if (headers instanceof Headers) {
     return Object.fromEntries(headers.entries());
@@ -106,7 +108,9 @@ export function createTestServer(
       requestHeaders,
       requestBodyText,
       requestBodyJson: Promise.resolve().then(() => {
-        if (requestBodyText == null) return undefined;
+        if (requestBodyText == null) {
+          return undefined;
+        }
         return JSON.parse(requestBodyText);
       }),
     });

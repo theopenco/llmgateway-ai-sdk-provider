@@ -1,35 +1,35 @@
-import type { LanguageModelV3FilePart } from '@ai-sdk/provider';
+import type { LanguageModelV4FilePart } from '@ai-sdk/provider';
 
+import { UnsupportedFunctionalityError } from '@ai-sdk/provider';
 import { convertUint8ArrayToBase64 } from '@ai-sdk/provider-utils';
-
-import { isUrl } from './is-url';
 
 export function getFileUrl({
   part,
   defaultMediaType,
 }: {
-  part: LanguageModelV3FilePart;
+  part: LanguageModelV4FilePart;
   defaultMediaType: string;
 }) {
-  if (part.data instanceof Uint8Array) {
-    const base64 = convertUint8ArrayToBase64(part.data);
-    return `data:${part.mediaType ?? defaultMediaType};base64,${base64}`;
+  const mediaType = part.mediaType ?? defaultMediaType;
+  switch (part.data.type) {
+    case 'url':
+      return part.data.url.toString();
+    case 'data': {
+      const base64 =
+        typeof part.data.data === 'string'
+          ? part.data.data
+          : convertUint8ArrayToBase64(part.data.data);
+      return `data:${mediaType};base64,${base64}`;
+    }
+    case 'text':
+      return `data:${mediaType};base64,${convertUint8ArrayToBase64(
+        new TextEncoder().encode(part.data.text),
+      )}`;
+    case 'reference':
+      throw new UnsupportedFunctionalityError({
+        functionality: 'provider file references',
+      });
   }
-
-  const stringUrl = part.data.toString();
-
-  if (
-    isUrl({
-      url: stringUrl,
-      protocols: new Set(['http:', 'https:']),
-    })
-  ) {
-    return stringUrl;
-  }
-
-  return stringUrl.startsWith('data:')
-    ? stringUrl
-    : `data:${part.mediaType ?? defaultMediaType};base64,${stringUrl}`;
 }
 
 export function getMediaType(

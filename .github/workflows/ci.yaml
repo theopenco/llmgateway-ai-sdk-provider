@@ -15,7 +15,7 @@ jobs:
           persist-credentials: false
       - name: Collect versions
         run: |
-          echo "nodejs_version=$(cat .tool-versions | grep 'nodejs' | cut -d ' ' -f 2)" >> "$GITHUB_ENV"
+          echo "nodejs_version=$(cat .tool-versions | grep '^node ' | cut -d ' ' -f 2)" >> "$GITHUB_ENV"
           echo "pnpm_version=$(cat .tool-versions | grep 'pnpm' | cut -d ' ' -f 2)" >> "$GITHUB_ENV"
       - uses: pnpm/action-setup@v4
         with:
@@ -30,5 +30,11 @@ jobs:
         run: pnpm build
       - name: Typecheck
         run: pnpm typecheck
+      - name: Lint
+        run: pnpm lint
+      - name: Check formatting
+        run: pnpm stylecheck
       - name: Test
         run: pnpm test
+      - name: Test package exports
+        run: pnpm test:package

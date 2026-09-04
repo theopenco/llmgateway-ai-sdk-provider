@@ -1,4 +1,5 @@
-import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import type { JSONSchema7 } from 'json-schema';
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 import type { ImageResponse } from '../schemas/image';
 import type { ReasoningDetailUnion } from '../schemas/reasoning-details';
 
@@ -8,7 +9,7 @@ import { createLLMGateway } from '../provider';
 import { ReasoningDetailType } from '../schemas/reasoning-details';
 import { createTestServer } from '../tests/create-test-server';
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -249,7 +250,10 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(response.finishReason).toStrictEqual({ unified: 'stop', raw: 'stop' });
+    expect(response.finishReason).toStrictEqual({
+      unified: 'stop',
+      raw: 'stop',
+    });
   });
 
   it('should support unknown finish reason', async () => {
@@ -262,7 +266,10 @@ describe('doGenerate', () => {
       prompt: TEST_PROMPT,
     });
 
-    expect(response.finishReason).toStrictEqual({ unified: 'other', raw: 'eos' });
+    expect(response.finishReason).toStrictEqual({
+      unified: 'other',
+      raw: 'eos',
+    });
   });
 
   it('should extract reasoning content from reasoning field', async () => {
@@ -530,7 +537,7 @@ describe('doGenerate', () => {
   it('should pass responseFormat for JSON schema structured outputs', async () => {
     prepareJsonResponse({ content: '{"name": "John", "age": 30}' });
 
-    const testSchema = {
+    const testSchema: JSONSchema7 = {
       type: 'object',
       properties: {
         name: { type: 'string' },
@@ -568,7 +575,7 @@ describe('doGenerate', () => {
   it('should use default name when name is not provided in responseFormat', async () => {
     prepareJsonResponse({ content: '{"name": "John", "age": 30}' });
 
-    const testSchema = {
+    const testSchema: JSONSchema7 = {
       type: 'object',
       properties: {
         name: { type: 'string' },
@@ -620,7 +627,7 @@ describe('doGenerate', () => {
       {
         type: 'file',
         mediaType: 'image/png',
-        data: TEST_IMAGE_BASE64,
+        data: { type: 'data', data: TEST_IMAGE_BASE64 },
       },
     ]);
   });
@@ -637,7 +644,7 @@ describe('doGenerate', () => {
       usage: { prompt_tokens: 45, total_tokens: 80, completion_tokens: 35 },
     });
 
-    const testSchema = {
+    const testSchema: JSONSchema7 = {
       type: 'object',
       properties: {
         description: { type: 'string' },
@@ -677,7 +684,7 @@ describe('doGenerate', () => {
       {
         type: 'file',
         mediaType: 'image/png',
-        data: TEST_IMAGE_BASE64,
+        data: { type: 'data', data: TEST_IMAGE_BASE64 },
       },
     ]);
 
@@ -1316,7 +1323,7 @@ describe('doStream', () => {
       {
         type: 'file',
         mediaType: 'image/png',
-        data: TEST_IMAGE_BASE64,
+        data: { type: 'data', data: TEST_IMAGE_BASE64 },
       },
       {
         type: 'response-metadata',

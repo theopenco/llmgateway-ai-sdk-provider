@@ -1,6 +1,10 @@
-import type { LanguageModelV3, LanguageModelV3Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV4, LanguageModelV4Prompt } from '@ai-sdk/provider';
 
-export type { LanguageModelV3, LanguageModelV3Prompt };
+export type { LanguageModelV4, LanguageModelV4Prompt };
+export type {
+  LLMGatewayVideoModelId,
+  LLMGatewayVideoSettings,
+} from './llmgateway-video-settings';
 
 export type LLMGatewayProviderOptions = {
   models?: string[];

@@ -1,4 +1,4 @@
-import type { ImageModelV3 } from '@ai-sdk/provider';
+import type { ImageModelV4, ProviderV4 } from '@ai-sdk/provider';
 import type {
   LLMGatewayChatModelId,
   LLMGatewayChatSettings,
@@ -8,16 +8,23 @@ import type {
   LLMGatewayImageModelId,
   LLMGatewayImageSettings,
 } from './types/llmgateway-image-settings';
+import type {
+  LLMGatewayVideoModelId,
+  LLMGatewayVideoSettings,
+} from './types/llmgateway-video-settings';
 
+import { NoSuchModelError } from '@ai-sdk/provider';
 import { loadApiKey, withoutTrailingSlash } from '@ai-sdk/provider-utils';
 
 import { LLMGatewayChatLanguageModel } from './chat';
 import { LLMGatewayCompletionLanguageModel } from './completion';
 import { LLMGatewayImageModel } from './image';
+import { LLMGatewayVideoModel } from './video';
 
 export type { LLMGatewayCompletionSettings };
 
-export interface LLMGatewayProvider {
+export interface LLMGatewayProvider extends ProviderV4 {
+  readonly specificationVersion: 'v4';
   (
     modelId: LLMGatewayChatModelId,
     settings?: LLMGatewayCompletionSettings,
@@ -66,7 +73,19 @@ Creates an LLMGateway image model for image generation.
   imageModel(
     modelId: LLMGatewayImageModelId,
     settings?: LLMGatewayImageSettings,
-  ): ImageModelV3;
+  ): ImageModelV4;
+
+  /** Creates a video model for the AI SDK's experimental_generateVideo. */
+  video(
+    modelId: LLMGatewayVideoModelId,
+    settings?: LLMGatewayVideoSettings,
+  ): LLMGatewayVideoModel;
+
+  /** Alias for video. */
+  videoModel(
+    modelId: LLMGatewayVideoModelId,
+    settings?: LLMGatewayVideoSettings,
+  ): LLMGatewayVideoModel;
 }
 
 export interface LLMGatewayProviderSettings {
@@ -195,11 +214,29 @@ export function createLLMGateway(
     settings?: LLMGatewayChatSettings | LLMGatewayCompletionSettings,
   ) => createLanguageModel(modelId, settings);
 
+  const createVideoModel = (
+    modelId: LLMGatewayVideoModelId,
+    settings: LLMGatewayVideoSettings = {},
+  ) =>
+    new LLMGatewayVideoModel(modelId, settings, {
+      provider: 'llmgateway.video',
+      url: ({ path }) => `${baseURL}${path}`,
+      headers: getHeaders,
+      fetch: options.fetch,
+      extraBody: options.extraBody,
+    });
+
+  provider.specificationVersion = 'v4' as const;
   provider.languageModel = createLanguageModel;
   provider.chat = createChatModel;
   provider.completion = createCompletionModel;
   provider.image = createImageModel;
   provider.imageModel = createImageModel;
+  provider.embeddingModel = (modelId: string): never => {
+    throw new NoSuchModelError({ modelId, modelType: 'embeddingModel' });
+  };
+  provider.video = createVideoModel;
+  provider.videoModel = createVideoModel;
 
   return provider as unknown as LLMGatewayProvider;
 }

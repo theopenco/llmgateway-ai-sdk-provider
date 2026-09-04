@@ -1,8 +1,8 @@
-import type { LanguageModelV3FinishReason } from '@ai-sdk/provider';
+import type { LanguageModelV4FinishReason } from '@ai-sdk/provider';
 
 export function mapLLMGatewayFinishReason(
   finishReason: string | null | undefined,
-): LanguageModelV3FinishReason {
+): LanguageModelV4FinishReason {
   switch (finishReason) {
     case 'stop':
       return { unified: 'stop', raw: finishReason };

@@ -7,7 +7,7 @@ import {
 } from '@/e2e/tools';
 import { createLLMGateway } from '@/src';
 import { generateText } from 'ai';
-import { it, vi } from 'vitest';
+import { expect, it, vi } from 'vitest';
 
 vi.setConfig({
   testTimeout: 42_000,
@@ -25,7 +25,7 @@ describe('Vercel AI SDK tools call with reasoning', () => {
       baseUrl: process.env.LLM_GATEWAY_API_BASE,
     });
 
-    const model = llmgateway('gpt-4o', {
+    const model = llmgateway('o4-mini', {
       usage: {
         include: true,
       },
@@ -44,13 +44,17 @@ describe('Vercel AI SDK tools call with reasoning', () => {
 
       const response = await generateText({
         model,
-        system:
+        instructions:
           'You are an airline assistant. You can send and read SMS messages, and execute commands in the terminal.',
         messages: messageHistory,
         tools: {
           readSMS: readSMSTool,
           sendSMS: sendSMSTool,
           executeCommand: executeCommandInTerminalTool,
+        },
+        toolChoice: {
+          type: 'tool',
+          toolName: prompt === prompts[0] ? 'sendSMS' : 'readSMS',
         },
         providerOptions: {
           llmgateway: {
@@ -61,15 +65,9 @@ describe('Vercel AI SDK tools call with reasoning', () => {
         },
       });
 
-      const content = response.steps.map((step) => ({
-        type: 'text' as const,
-        text: step.text,
-      }));
-
-      messageHistory.push({
-        role: 'assistant',
-        content,
-      });
+      expect(response.toolCalls.length).toBeGreaterThan(0);
+      expect(response.toolResults.length).toBeGreaterThan(0);
+      messageHistory.push(...response.response.messages);
     }
   });
 });

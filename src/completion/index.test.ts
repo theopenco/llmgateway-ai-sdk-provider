@@ -1,11 +1,11 @@
-import type { LanguageModelV3Prompt } from '@ai-sdk/provider';
+import type { LanguageModelV4Prompt } from '@ai-sdk/provider';
 
 import { convertReadableStreamToArray } from '@ai-sdk/provider-utils/test';
 
 import { createLLMGateway } from '../provider';
 import { createTestServer } from '../tests/create-test-server';
 
-const TEST_PROMPT: LanguageModelV3Prompt = [
+const TEST_PROMPT: LanguageModelV4Prompt = [
   { role: 'user', content: [{ type: 'text', text: 'Hello' }] },
 ];
 
@@ -321,10 +321,12 @@ describe('doStream', () => {
     // note: space moved to last chunk bc of trimming
     const elements = await convertReadableStreamToArray(stream);
     expect(elements).toStrictEqual([
+      { type: 'text-start', id: expect.any(String) },
       { type: 'text-delta', delta: 'Hello', id: expect.any(String) },
       { type: 'text-delta', delta: ', ', id: expect.any(String) },
       { type: 'text-delta', delta: 'World!', id: expect.any(String) },
       { type: 'text-delta', delta: '', id: expect.any(String) },
+      { type: 'text-end', id: expect.any(String) },
       {
         type: 'finish',
         finishReason: { unified: 'stop', raw: 'stop' },

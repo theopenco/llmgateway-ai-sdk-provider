@@ -9,7 +9,7 @@ describe('user messages', () => {
           { type: 'text', text: 'Hello' },
           {
             type: 'file',
-            data: new Uint8Array([0, 1, 2, 3]),
+            data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
             mediaType: 'image/png',
           },
         ],
@@ -38,7 +38,10 @@ describe('user messages', () => {
           { type: 'text', text: 'Hello' },
           {
             type: 'file',
-            data: 'https://example.com/image.png',
+            data: {
+              type: 'url',
+              url: new URL('https://example.com/image.png'),
+            },
             mediaType: 'image/png',
           },
         ],
@@ -67,7 +70,10 @@ describe('user messages', () => {
           { type: 'text', text: 'Hello' },
           {
             type: 'file',
-            data: 'data:image/png;base64,AAECAw==',
+            data: {
+              type: 'url',
+              url: new URL('data:image/png;base64,AAECAw=='),
+            },
             mediaType: 'image/png',
           },
         ],
@@ -107,7 +113,7 @@ describe('user messages', () => {
           { type: 'text', text: 'Transcribe this' },
           {
             type: 'file',
-            data: new Uint8Array([0, 1, 2, 3]),
+            data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
             mediaType: 'audio/wav',
           },
         ],
@@ -136,7 +142,10 @@ describe('user messages', () => {
           { type: 'text', text: 'Transcribe this' },
           {
             type: 'file',
-            data: 'data:audio/mpeg;base64,SUQzAAA=',
+            data: {
+              type: 'url',
+              url: new URL('data:audio/mpeg;base64,SUQzAAA='),
+            },
             mediaType: 'audio/mpeg',
           },
         ],
@@ -164,12 +173,12 @@ describe('user messages', () => {
         content: [
           {
             type: 'file',
-            data: new Uint8Array([0]),
+            data: { type: 'data', data: new Uint8Array([0]) },
             mediaType: 'audio/x-m4a',
           },
           {
             type: 'file',
-            data: new Uint8Array([0]),
+            data: { type: 'data', data: new Uint8Array([0]) },
             mediaType: 'audio/webm',
           },
         ],
@@ -200,7 +209,10 @@ describe('user messages', () => {
         content: [
           {
             type: 'file',
-            data: 'https://example.com/audio.wav',
+            data: {
+              type: 'url',
+              url: new URL('https://example.com/audio.wav'),
+            },
             mediaType: 'audio/wav',
           },
         ],
@@ -230,7 +242,7 @@ describe('user messages', () => {
         content: [
           {
             type: 'file',
-            data: new Uint8Array([0, 1, 2, 3]),
+            data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
             mediaType: 'audio/3gpp',
           },
         ],
@@ -344,7 +356,7 @@ describe('cache control', () => {
           { type: 'text', text: 'Hello' },
           {
             type: 'file',
-            data: new Uint8Array([0, 1, 2, 3]),
+            data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
             mediaType: 'image/png',
           },
         ],
@@ -399,12 +411,12 @@ describe('cache control', () => {
           { type: 'text', text: 'Hello' },
           {
             type: 'file',
-            data: new Uint8Array([0, 1, 2, 3]),
+            data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
             mediaType: 'image/png',
           },
           {
             type: 'file',
-            data: new Uint8Array([4, 5, 6, 7]),
+            data: { type: 'data', data: new Uint8Array([4, 5, 6, 7]) },
             mediaType: 'image/jpeg',
           },
         ],
@@ -448,7 +460,7 @@ describe('cache control', () => {
           { type: 'text', text: 'Hello' },
           {
             type: 'file',
-            data: 'ZmlsZSBjb250ZW50',
+            data: { type: 'data', data: 'ZmlsZSBjb250ZW50' },
             mediaType: 'text/plain',
             providerOptions: {
               llmgateway: {
@@ -499,7 +511,7 @@ describe('cache control', () => {
           },
           {
             type: 'file',
-            data: new Uint8Array([0, 1, 2, 3]),
+            data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
             mediaType: 'image/png',
             providerOptions: {
               anthropic: {
@@ -509,7 +521,7 @@ describe('cache control', () => {
           },
           {
             type: 'file',
-            data: 'ZmlsZSBjb250ZW50',
+            data: { type: 'data', data: 'ZmlsZSBjb250ZW50' },
             mediaType: 'text/plain',
             providerOptions: {
               llmgateway: {
@@ -570,7 +582,7 @@ describe('cache control', () => {
           },
           {
             type: 'file',
-            data: new Uint8Array([0, 1, 2, 3]),
+            data: { type: 'data', data: new Uint8Array([0, 1, 2, 3]) },
             mediaType: 'image/png',
           },
         ],

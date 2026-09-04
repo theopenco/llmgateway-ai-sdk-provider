@@ -1,17 +1,13 @@
 import { defineConfig } from 'tsup';
 
-export default defineConfig([
-  {
-    entry: ['src/index.ts'],
-    format: ['cjs', 'esm'],
-    dts: true,
-    sourcemap: true,
+export default defineConfig({
+  entry: {
+    index: 'src/index.ts',
+    'internal/index': 'src/internal/index.ts',
   },
-  {
-    entry: ['src/internal/index.ts'],
-    outDir: 'dist/internal',
-    format: ['cjs', 'esm'],
-    dts: true,
-    sourcemap: true,
-  },
-]);
+  format: ['esm'],
+  splitting: true,
+  dts: true,
+  sourcemap: true,
+  clean: true,
+});

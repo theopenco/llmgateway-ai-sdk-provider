@@ -329,8 +329,8 @@ describe('LLMGatewayImageModel', () => {
       expect(result.response.timestamp).toBeInstanceOf(Date);
     });
 
-    it('should set specificationVersion to v3', () => {
-      expect(model.specificationVersion).toBe('v3');
+    it('should set specificationVersion to v4', () => {
+      expect(model.specificationVersion).toBe('v4');
     });
 
     it('should set provider to llmgateway.image', () => {

@@ -1,11 +1,11 @@
 import type { z } from 'zod/v4';
 import type { LLMGatewayChatModelId } from '@/src/types/llmgateway-chat-settings';
 import type {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3FinishReason,
-  LanguageModelV3StreamPart,
-  LanguageModelV3Usage,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4FinishReason,
+  LanguageModelV4StreamPart,
+  LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 import type { ParseResult } from '@ai-sdk/provider-utils';
 import type { LLMGatewayUsageAccounting } from '../types';
@@ -34,8 +34,8 @@ type LLMGatewayCompletionConfig = {
   extraBody?: Record<string, unknown>;
 };
 
-export class LLMGatewayCompletionLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3' as const;
+export class LLMGatewayCompletionLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4' as const;
   readonly provider = 'llmgateway';
   readonly modelId: LLMGatewayChatModelId;
   readonly supportedUrls: Record<string, RegExp[]> = {
@@ -73,7 +73,7 @@ export class LLMGatewayCompletionLanguageModel implements LanguageModelV3 {
     stopSequences,
     tools,
     toolChoice,
-  }: LanguageModelV3CallOptions) {
+  }: LanguageModelV4CallOptions) {
     const { prompt: completionPrompt } = convertToLLMGatewayCompletionPrompt({
       prompt,
       inputFormat: 'prompt',
@@ -85,7 +85,11 @@ export class LLMGatewayCompletionLanguageModel implements LanguageModelV3 {
       });
     }
 
-    if (toolChoice) {
+    if (
+      toolChoice &&
+      toolChoice.type !== 'auto' &&
+      toolChoice.type !== 'none'
+    ) {
       throw new UnsupportedFunctionalityError({
         functionality: 'toolChoice',
       });
@@ -135,8 +139,8 @@ export class LLMGatewayCompletionLanguageModel implements LanguageModelV3 {
   }
 
   async doGenerate(
-    options: LanguageModelV3CallOptions,
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doGenerate']>>> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<Awaited<ReturnType<LanguageModelV4['doGenerate']>>> {
     const providerOptions = options.providerOptions || {};
     const llmgatewayOptions = providerOptions.llmgateway || {};
 
@@ -202,8 +206,8 @@ export class LLMGatewayCompletionLanguageModel implements LanguageModelV3 {
   }
 
   async doStream(
-    options: LanguageModelV3CallOptions,
-  ): Promise<Awaited<ReturnType<LanguageModelV3['doStream']>>> {
+    options: LanguageModelV4CallOptions,
+  ): Promise<Awaited<ReturnType<LanguageModelV4['doStream']>>> {
     const providerOptions = options.providerOptions || {};
     const llmgatewayOptions = providerOptions.llmgateway || {};
 
@@ -236,8 +240,11 @@ export class LLMGatewayCompletionLanguageModel implements LanguageModelV3 {
       fetch: this.config.fetch,
     });
 
-    let finishReason: LanguageModelV3FinishReason = { unified: 'other', raw: undefined };
-    const usage: LanguageModelV3Usage = {
+    let finishReason: LanguageModelV4FinishReason = {
+      unified: 'other',
+      raw: undefined,
+    };
+    const usage: LanguageModelV4Usage = {
       inputTokens: {
         total: undefined,
         noCache: undefined,
@@ -252,11 +259,13 @@ export class LLMGatewayCompletionLanguageModel implements LanguageModelV3 {
     };
 
     const llmgatewayUsage: Partial<LLMGatewayUsageAccounting> = {};
+    const textId = generateId();
+    let textStarted = false;
     return {
       stream: response.pipeThrough(
         new TransformStream<
           ParseResult<z.infer<typeof LLMGatewayCompletionChunkSchema>>,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           transform(chunk, controller) {
             // handle failed chunk parsing / validation:
@@ -317,15 +326,22 @@ export class LLMGatewayCompletionLanguageModel implements LanguageModelV3 {
             }
 
             if (choice?.text != null) {
+              if (!textStarted) {
+                controller.enqueue({ type: 'text-start', id: textId });
+                textStarted = true;
+              }
               controller.enqueue({
                 type: 'text-delta',
                 delta: choice.text,
-                id: generateId(),
+                id: textId,
               });
             }
           },
 
           flush(controller) {
+            if (textStarted) {
+              controller.enqueue({ type: 'text-end', id: textId });
+            }
             controller.enqueue({
               type: 'finish',
               finishReason,

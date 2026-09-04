@@ -1,7 +1,7 @@
 import type {
-  ImageModelV3,
-  ImageModelV3CallOptions,
-  SharedV3Warning,
+  ImageModelV4,
+  ImageModelV4CallOptions,
+  SharedV4Warning,
 } from '@ai-sdk/provider';
 import type {
   LLMGatewayImageModelId,
@@ -10,6 +10,7 @@ import type {
 
 import {
   combineHeaders,
+  convertUint8ArrayToBase64,
   createJsonResponseHandler,
   postJsonToApi,
 } from '@ai-sdk/provider-utils';
@@ -25,7 +26,7 @@ type LLMGatewayImageConfig = {
   extraBody?: Record<string, unknown>;
 };
 
-type LLMGatewayImageModelCallOptions = ImageModelV3CallOptions & {
+type LLMGatewayImageModelCallOptions = ImageModelV4CallOptions & {
   quality?: string;
 };
 
@@ -39,8 +40,8 @@ const LLMGatewayImageResponseSchema = z.object({
   ),
 });
 
-export class LLMGatewayImageModel implements ImageModelV3 {
-  readonly specificationVersion = 'v3' as const;
+export class LLMGatewayImageModel implements ImageModelV4 {
+  readonly specificationVersion = 'v4' as const;
   readonly provider: string;
   readonly modelId: LLMGatewayImageModelId;
   readonly maxImagesPerCall: number | undefined = undefined;
@@ -62,14 +63,14 @@ export class LLMGatewayImageModel implements ImageModelV3 {
 
   async doGenerate(options: LLMGatewayImageModelCallOptions): Promise<{
     images: Array<string>;
-    warnings: Array<SharedV3Warning>;
+    warnings: Array<SharedV4Warning>;
     response: {
       timestamp: Date;
       modelId: string;
       headers: Record<string, string> | undefined;
     };
   }> {
-    const warnings: SharedV3Warning[] = [];
+    const warnings: SharedV4Warning[] = [];
 
     if (options.seed != null) {
       warnings.push({
@@ -95,7 +96,7 @@ export class LLMGatewayImageModel implements ImageModelV3 {
         const base64 =
           typeof file.data === 'string'
             ? file.data
-            : Buffer.from(file.data).toString('base64');
+            : convertUint8ArrayToBase64(file.data);
         const mediaType = file.mediaType ?? 'image/png';
         return { image_url: `data:${mediaType};base64,${base64}` };
       });

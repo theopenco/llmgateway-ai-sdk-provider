@@ -1,15 +1,14 @@
 import type { ModelMessage } from 'ai';
 
-import { writeFile } from 'fs/promises';
 import { createLLMGateway } from '@/src';
 import { generateText } from 'ai';
-import { test, vi } from 'vitest';
+import { expect, test, vi } from 'vitest';
 
 vi.setConfig({
   testTimeout: 42_000,
 });
 
-test.skip('send pdf urls', async () => {
+test('send pdf urls', async () => {
   const llmgateway = createLLMGateway({
     apiKey: process.env.LLM_GATEWAY_API_KEY,
     baseUrl: process.env.LLM_GATEWAY_API_BASE,
@@ -39,22 +38,7 @@ test.skip('send pdf urls', async () => {
   const response = await generateText({
     model,
     messages: messageHistory,
-    providerOptions: {
-      llmgateway: {
-        reasoningText: {
-          max_tokens: 2048,
-        },
-      },
-    },
   });
 
-  messageHistory.push({
-    role: 'assistant',
-    content: response.text,
-  });
-
-  await writeFile(
-    new URL('./output.ignore.json', import.meta.url),
-    JSON.stringify(messageHistory, null, 2),
-  );
+  expect(response.text).toMatch(/bitcoin|electronic cash/i);
 });
