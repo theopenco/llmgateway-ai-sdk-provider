@@ -2,14 +2,14 @@ import type { z } from 'zod/v4';
 import type { ReasoningDetailUnion } from '@/src/schemas/reasoning-details';
 import type { LLMGatewayUsageAccounting } from '@/src/types/index';
 import type {
-  LanguageModelV3,
-  LanguageModelV3CallOptions,
-  LanguageModelV3Content,
-  LanguageModelV3FinishReason,
-  LanguageModelV3GenerateResult,
-  LanguageModelV3StreamPart,
-  LanguageModelV3StreamResult,
-  LanguageModelV3Usage,
+  LanguageModelV4,
+  LanguageModelV4CallOptions,
+  LanguageModelV4Content,
+  LanguageModelV4FinishReason,
+  LanguageModelV4GenerateResult,
+  LanguageModelV4StreamPart,
+  LanguageModelV4StreamResult,
+  LanguageModelV4Usage,
 } from '@ai-sdk/provider';
 import type { ParseResult } from '@ai-sdk/provider-utils';
 import type {
@@ -47,8 +47,8 @@ type LLMGatewayChatConfig = {
   extraBody?: Record<string, unknown>;
 };
 
-export class LLMGatewayChatLanguageModel implements LanguageModelV3 {
-  readonly specificationVersion = 'v3' as const;
+export class LLMGatewayChatLanguageModel implements LanguageModelV4 {
+  readonly specificationVersion = 'v4' as const;
   readonly provider = 'llmgateway';
 
   readonly modelId: LLMGatewayChatModelId;
@@ -87,7 +87,7 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV3 {
     topK,
     tools,
     toolChoice,
-  }: LanguageModelV3CallOptions) {
+  }: LanguageModelV4CallOptions) {
     const baseArgs = {
       // model id:
       model: this.modelId,
@@ -185,7 +185,9 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV3 {
     return baseArgs;
   }
 
-  async doGenerate(options: LanguageModelV3CallOptions): Promise<LanguageModelV3GenerateResult> {
+  async doGenerate(
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4GenerateResult> {
     const providerOptions = options.providerOptions || {};
     const llmgatewayOptions = providerOptions.llmgateway || {};
 
@@ -217,7 +219,7 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV3 {
     }
 
     // Extract detailed usage information
-    const usageInfo: LanguageModelV3Usage = response.usage
+    const usageInfo: LanguageModelV4Usage = response.usage
       ? {
           inputTokens: {
             total: response.usage.prompt_tokens ?? undefined,
@@ -250,7 +252,7 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV3 {
 
     const reasoningDetails = choice.message.reasoning_details ?? [];
 
-    const reasoning: Array<LanguageModelV3Content> =
+    const reasoning: Array<LanguageModelV4Content> =
       reasoningDetails.length > 0
         ? (reasoningDetails
             .map((detail: ReasoningDetailUnion) => {
@@ -291,8 +293,10 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV3 {
               return null;
             })
             .filter(
-              (p: { type: 'reasoning'; text: string } | null): p is { type: 'reasoning'; text: string } => p !== null,
-            ) as LanguageModelV3Content[])
+              (
+                p: { type: 'reasoning'; text: string } | null,
+              ): p is { type: 'reasoning'; text: string } => p !== null,
+            ) as LanguageModelV4Content[])
         : choice.message.reasoningText
           ? [
               {
@@ -302,7 +306,7 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV3 {
             ]
           : [];
 
-    const content: Array<LanguageModelV3Content> = [];
+    const content: Array<LanguageModelV4Content> = [];
 
     // Add reasoning content first
     content.push(...reasoning);
@@ -330,7 +334,9 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV3 {
         content.push({
           type: 'file' as const,
           mediaType: getMediaType(image.image_url.url, 'image/jpeg'),
-          data: getBase64FromDataUrl(image.image_url.url),
+          data: image.image_url.url.startsWith('data:')
+            ? { type: 'data', data: getBase64FromDataUrl(image.image_url.url) }
+            : { type: 'url', url: new URL(image.image_url.url) },
         });
       }
     }
@@ -398,7 +404,9 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV3 {
     };
   }
 
-  async doStream(options: LanguageModelV3CallOptions): Promise<LanguageModelV3StreamResult> {
+  async doStream(
+    options: LanguageModelV4CallOptions,
+  ): Promise<LanguageModelV4StreamResult> {
     const providerOptions = options.providerOptions || {};
     const llmgatewayOptions = providerOptions.llmgateway || {};
 
@@ -442,8 +450,11 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV3 {
       sent: boolean;
     }> = [];
 
-    let finishReason: LanguageModelV3FinishReason = { unified: 'other', raw: undefined };
-    const usage: LanguageModelV3Usage = {
+    let finishReason: LanguageModelV4FinishReason = {
+      unified: 'other',
+      raw: undefined,
+    };
+    const usage: LanguageModelV4Usage = {
       inputTokens: {
         total: undefined,
         noCache: undefined,
@@ -472,7 +483,7 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV3 {
           ParseResult<
             z.infer<typeof LLMGatewayStreamChatCompletionChunkSchema>
           >,
-          LanguageModelV3StreamPart
+          LanguageModelV4StreamPart
         >({
           transform(chunk, controller) {
             // handle failed chunk parsing / validation:
@@ -760,7 +771,12 @@ export class LLMGatewayChatLanguageModel implements LanguageModelV3 {
                 controller.enqueue({
                   type: 'file',
                   mediaType: getMediaType(image.image_url.url, 'image/jpeg'),
-                  data: getBase64FromDataUrl(image.image_url.url),
+                  data: image.image_url.url.startsWith('data:')
+                    ? {
+                        type: 'data',
+                        data: getBase64FromDataUrl(image.image_url.url),
+                      }
+                    : { type: 'url', url: new URL(image.image_url.url) },
                 });
               }
             }

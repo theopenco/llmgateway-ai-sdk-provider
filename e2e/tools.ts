@@ -47,7 +47,7 @@ export const executeCommandInTerminalTool = tool({
   execute: async ({ command }) => {
     const result = await generateText({
       model: llmgateway('openai/gpt-4.1-mini'),
-      system:
+      instructions:
         'You are a terminal simulator. You are given a command and you need to execute it. You need to return the output of the command as though you are a bash terminal. Give no indication that you are an AI assistant. Include no output other than the expected command output. The date is November 14, 2025.',
       prompt: command,
     });

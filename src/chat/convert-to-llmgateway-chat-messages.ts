@@ -1,10 +1,10 @@
 import type { ReasoningDetailUnion } from '@/src/schemas/reasoning-details';
 import type {
-  LanguageModelV3FilePart,
-  LanguageModelV3Prompt,
-  LanguageModelV3TextPart,
-  LanguageModelV3ToolResultPart,
-  SharedV3ProviderOptions,
+  LanguageModelV4FilePart,
+  LanguageModelV4Prompt,
+  LanguageModelV4TextPart,
+  LanguageModelV4ToolResultPart,
+  SharedV4ProviderOptions,
 } from '@ai-sdk/provider';
 import type {
   ChatCompletionContentPart,
@@ -37,9 +37,13 @@ const AUDIO_FORMAT_BY_MIME: Record<string, ChatCompletionInputAudioFormat> = {
 function audioFormatFromMime(
   mime: string | undefined,
 ): ChatCompletionInputAudioFormat | undefined {
-  if (!mime) return undefined;
+  if (!mime) {
+    return undefined;
+  }
   const lower = mime.toLowerCase().split(';')[0]?.trim();
-  if (!lower) return undefined;
+  if (!lower) {
+    return undefined;
+  }
   return AUDIO_FORMAT_BY_MIME[lower];
 }
 
@@ -47,7 +51,7 @@ function audioFormatFromMime(
 export type LLMGatewayCacheControl = { type: 'ephemeral' };
 
 function getCacheControl(
-  providerOptions: SharedV3ProviderOptions | undefined,
+  providerOptions: SharedV4ProviderOptions | undefined,
 ): LLMGatewayCacheControl | undefined {
   const anthropic = providerOptions?.anthropic;
   const llmgateway = providerOptions?.llmgateway;
@@ -60,7 +64,7 @@ function getCacheControl(
 }
 
 export function convertToLLMGatewayChatMessages(
-  prompt: LanguageModelV3Prompt,
+  prompt: LanguageModelV4Prompt,
 ): LLMGatewayChatCompletionsInput {
   const messages: LLMGatewayChatCompletionsInput = [];
   for (const { role, content, providerOptions } of prompt) {
@@ -99,7 +103,7 @@ export function convertToLLMGatewayChatMessages(
         // Get message level cache control
         const messageCacheControl = getCacheControl(providerOptions);
         const contentParts: ChatCompletionContentPart[] = content.map(
-          (part: LanguageModelV3TextPart | LanguageModelV3FilePart) => {
+          (part: LanguageModelV4TextPart | LanguageModelV4FilePart) => {
             const cacheControl =
               getCacheControl(part.providerOptions) ?? messageCacheControl;
 
@@ -265,7 +269,9 @@ export function convertToLLMGatewayChatMessages(
 
       case 'tool': {
         for (const toolResponse of content) {
-          if (toolResponse.type !== 'tool-result') continue;
+          if (toolResponse.type !== 'tool-result') {
+            continue;
+          }
           const content = getToolResultContent(toolResponse);
 
           messages.push({
@@ -289,7 +295,7 @@ export function convertToLLMGatewayChatMessages(
   return messages;
 }
 
-function getToolResultContent(input: LanguageModelV3ToolResultPart): string {
+function getToolResultContent(input: LanguageModelV4ToolResultPart): string {
   switch (input.output.type) {
     case 'text':
       return input.output.value;
