@@ -11,7 +11,7 @@ The [LLMGateway](https://llmgateway.io/) provider for the [Vercel AI SDK](https:
 - For AI SDK v6, use `@llmgateway/ai-sdk-provider@3.x.x`.
 - For AI SDK v7, use `@llmgateway/ai-sdk-provider@4.x.x`.
 
-This version requires AI SDK **7.0.93 or later**, **Node.js 22 or later**, and ESM imports. It implements the SDK's v4 model interfaces, including native asynchronous video generation. Applications migrating from v6 should follow the [AI SDK 7 migration guide](https://ai-sdk.dev/docs/migration-guides/migration-guide-7-0).
+This version requires AI SDK **7.0.138 or later**, **Node.js 22 or later**, and ESM imports. It implements the SDK's v4 model interfaces, including native asynchronous video generation. Applications migrating from v6 should follow the [AI SDK 7 migration guide](https://ai-sdk.dev/docs/migration-guides/migration-guide-7-0).
 
 ## Setup
 
