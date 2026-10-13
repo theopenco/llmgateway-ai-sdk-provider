@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           fetch-depth: 0
           persist-credentials: false
@@ -24,10 +24,10 @@ jobs:
         run: |
           echo "nodejs_version=$(cat .tool-versions | grep '^node ' | cut -d ' ' -f 2)" >> "$GITHUB_ENV"
           echo "pnpm_version=$(cat .tool-versions | grep 'pnpm' | cut -d ' ' -f 2)" >> "$GITHUB_ENV"
-      - uses: pnpm/action-setup@v4
+      - uses: pnpm/action-setup@v6
         with:
           version: ${{ env.pnpm_version }}
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: ${{ env.nodejs_version }}
           cache: pnpm

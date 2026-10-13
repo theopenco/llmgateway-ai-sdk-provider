@@ -110,12 +110,12 @@ describe('LLMGateway video', () => {
         headers: { 'content-type': 'video/webm; charset=binary' },
       }),
     ]);
-    const abortSignal = new AbortController().signal;
+    const controller = new AbortController();
     const result = await generate({
       resolution: '1920x1080',
       generateAudio: false,
       headers: { 'x-request': 'request' },
-      abortSignal,
+      abortSignal: controller.signal,
     });
     expect(result.video.uint8Array).toEqual(bytes);
     expect(result.video.mediaType).toBe('video/webm');
@@ -143,12 +143,17 @@ describe('LLMGateway video', () => {
       size: '1920x1080',
       audio: false,
     });
+    expect(fetch.mock.calls[0]![1]?.signal).toBe(controller.signal);
     for (const [, init] of fetch.mock.calls) {
       const headers = new Headers(init?.headers);
       expect(headers.get('authorization')).toBe('Bearer test-key');
       expect(headers.get('x-provider')).toBe('provider');
       expect(headers.get('x-request')).toBe('request');
-      expect(init?.signal).toBe(abortSignal);
+      expect(init?.signal?.aborted).toBe(false);
+    }
+    controller.abort();
+    for (const [, init] of fetch.mock.calls) {
+      expect(init?.signal?.aborted).toBe(true);
     }
     expect(
       new Headers(fetch.mock.calls[0]![1]?.headers).get('idempotency-key'),

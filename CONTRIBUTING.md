@@ -7,7 +7,7 @@ Thank you for your interest in contributing to the LLMGateway provider for the V
 ### Prerequisites
 
 - Node.js v22 or higher (AI SDK 7 requires ESM)
-- pnpm v9.15.0 or higher (the project uses pnpm as its package manager)
+- pnpm v12 (the exact version is pinned in `.tool-versions`)
 
 ### Setting Up the Repository
 
